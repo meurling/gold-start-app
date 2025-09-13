@@ -1,7 +1,6 @@
-import { Bell, Search, User } from "lucide-react"
+import { Bell, User } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +16,6 @@ export function DashboardHeader() {
     <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <SidebarTrigger />
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search..."
-            className="w-80 pl-10 bg-muted/50 border-border focus:ring-primary focus:border-primary"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-4">

@@ -1,14 +1,9 @@
 import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
-  BarChart3, 
-  FileText, 
-  CreditCard,
-  Bell,
-  HelpCircle 
+  HelpCircle,
+  MessageSquare
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
+import { ProjectSelector } from "./ProjectSelector"
 
 import {
   Sidebar,
@@ -24,17 +19,8 @@ import {
 } from "@/components/ui/sidebar"
 
 const navigationItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Users", url: "/users", icon: Users },
-  { title: "Documents", url: "/documents", icon: FileText },
-  { title: "Billing", url: "/billing", icon: CreditCard },
-]
-
-const supportItems = [
-  { title: "Notifications", url: "/notifications", icon: Bell },
-  { title: "Help Center", url: "/help", icon: HelpCircle },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Questions", url: "/questions", icon: HelpCircle },
+  { title: "Answers", url: "/answers", icon: MessageSquare },
 ]
 
 export function AppSidebar() {
@@ -56,8 +42,8 @@ export function AppSidebar() {
                 <span className="text-primary-foreground font-bold text-sm">S</span>
               </div>
               <div>
-                <h2 className="text-h3 font-semibold text-sidebar-foreground">SaaS App</h2>
-                <p className="text-small text-sidebar-foreground/70">Professional Edition</p>
+                <h2 className="text-h3 font-semibold text-sidebar-foreground">DAIRO</h2>
+                <p className="text-small text-sidebar-foreground/70">Dataroom</p>
               </div>
             </>
           )}
@@ -70,10 +56,8 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        <ProjectSelector isCollapsed={isCollapsed} />
         <SidebarGroup>
-          <SidebarGroupLabel className="text-small text-sidebar-foreground/70 px-3 py-2">
-            Main
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
@@ -82,29 +66,6 @@ export function AppSidebar() {
                     <NavLink 
                       to={item.url} 
                       end 
-                      className={getNavClass}
-                    >
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span className="text-body-sm">{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-small text-sidebar-foreground/70 px-3 py-2">
-            Support
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {supportItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
                       className={getNavClass}
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
