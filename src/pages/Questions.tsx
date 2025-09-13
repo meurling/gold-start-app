@@ -97,6 +97,16 @@ export default function Questions() {
   const answeredQuestions = allFilteredQuestions.filter(q => isQuestionAnswered(q.id));
   const unansweredQuestions = allFilteredQuestions.filter(q => !isQuestionAnswered(q.id));
   
+  // Debug logging
+  console.log('Questions page filtering:', {
+    totalQuestions: allFilteredQuestions.length,
+    answeredCount: answeredQuestions.length,
+    unansweredCount: unansweredQuestions.length,
+    currentTab: questionStatusTab,
+    answeredQuestionIds: answeredQuestions.map(q => q.id),
+    unansweredQuestionIds: unansweredQuestions.map(q => q.id)
+  });
+  
 
   const handleCreateQuestion = async (newQuestion: Omit<Question, "id" | "createdAt" | "updatedAt">) => {
     if (!activeProject) {

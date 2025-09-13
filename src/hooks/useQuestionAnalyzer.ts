@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { QuestionAnalyzerService, QuestionAnalysisResult, BulkAnalysisResult } from '@/lib/services/questionAnalyzer';
 import { Question } from '@/lib/services/question/types';
 import { QuestionAnswer } from '@/lib/types';
@@ -26,6 +26,65 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
   const [answers, setAnswers] = useState<Map<string, QuestionAnswer[]>>(new Map());
   
   const analyzerService = new QuestionAnalyzerService();
+
+  // Storage key for persisting analysis results
+  const STORAGE_KEY = 'question-analysis-results';
+
+  // Load analysis results from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsedData = JSON.parse(stored);
+        const resultsMap = new Map<string, QuestionAnalysisResult>();
+        const answersMap = new Map<string, QuestionAnswer[]>();
+        
+        // Convert the stored data back to Maps
+        Object.entries(parsedData.results || {}).forEach(([questionId, result]) => {
+          const analysisResult = result as QuestionAnalysisResult;
+          
+          // Convert date strings back to Date objects for answers
+          const answersWithDates = analysisResult.answers.map(answer => ({
+            ...answer,
+            createdAt: new Date(answer.createdAt),
+            updatedAt: new Date(answer.updatedAt)
+          }));
+          
+          const processedResult = {
+            ...analysisResult,
+            answers: answersWithDates
+          };
+          
+          resultsMap.set(questionId, processedResult);
+          answersMap.set(questionId, answersWithDates);
+        });
+        
+        console.log('Loaded analysis results from localStorage:', {
+          totalResults: resultsMap.size,
+          questionIds: Array.from(resultsMap.keys()),
+          sampleResult: resultsMap.size > 0 ? resultsMap.values().next().value : null
+        });
+        
+        setAnalysisResults(resultsMap);
+        setAnswers(answersMap);
+      }
+    } catch (error) {
+      console.error('Failed to load analysis results from storage:', error);
+    }
+  }, []);
+
+  // Save analysis results to localStorage whenever they change
+  useEffect(() => {
+    try {
+      const dataToStore = {
+        results: Object.fromEntries(analysisResults),
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
+    } catch (error) {
+      console.error('Failed to save analysis results to storage:', error);
+    }
+  }, [analysisResults]);
 
   const analyzeQuestion = useCallback(async (question: Question, projectId: string): Promise<QuestionAnalysisResult> => {
     setAnalyzing(true);
@@ -77,11 +136,26 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
   const clearResults = useCallback(() => {
     setAnalysisResults(new Map());
     setAnswers(new Map());
-  }, []);
+    // Also clear from localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Failed to clear analysis results from storage:', error);
+    }
+  }, [STORAGE_KEY]);
 
   const isQuestionAnswered = useCallback((questionId: string): boolean => {
     const result = analysisResults.get(questionId);
-    return result?.isAnswered ?? false;
+    const isAnswered = result?.isAnswered ?? false;
+    
+    // Debug logging
+    console.log(`isQuestionAnswered(${questionId}):`, {
+      hasResult: !!result,
+      isAnswered,
+      answersCount: result?.answers?.length || 0
+    });
+    
+    return isAnswered;
   }, [analysisResults]);
 
   const getQuestionAnswers = useCallback((questionId: string): QuestionAnswer[] => {

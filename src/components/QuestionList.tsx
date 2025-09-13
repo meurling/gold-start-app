@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Question } from "@/lib/services/question/types";
 import { useQuestionService } from "@/hooks/useQuestionService";
 import { useQuestionAnalyzer } from "@/hooks/useQuestionAnalyzer";
+import { AnswerViewer } from "@/components/AnswerViewer";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -75,6 +76,15 @@ function QuestionItem({ question, onDeleteQuestion, onAnalyzeQuestion, analyzing
           </p>
         </div>
         <div className="flex items-center gap-1 ml-4">
+          {/* View Answers Button - only show for answered questions */}
+          {isAnswered && answers.length > 0 && (
+            <AnswerViewer
+              questionId={question.id}
+              questionContent={question.content}
+              answers={answers}
+            />
+          )}
+          
           {/* Analyze Button - only show for unanswered questions */}
           {!isAnswered && onAnalyzeQuestion && (
             <Button 
