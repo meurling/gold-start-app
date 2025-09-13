@@ -1,18 +1,30 @@
 import { useState } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
+import { useActiveProject } from '@/hooks/useStorage';
 import { Role } from '@/lib/user';
+import { AnswerService } from '@/lib/answer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Users, UserPlus, Trash2, UserCheck, ChevronUp, ChevronDown, UserX } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { X, Users, UserPlus, Trash2, UserCheck, ChevronUp, ChevronDown, UserX, Search } from 'lucide-react';
 
 export function DebugPanel() {
     const { users, currentUser, createUser, deleteUser, switchUser, clearCurrentUser, error } = useUserContext();
+    const { activeProject } = useActiveProject();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [newUserName, setNewUserName] = useState('');
     const [newUserRole, setNewUserRole] = useState<Role>(Role.Asker);
+
+    // RAG request state
+    const [ragQuery, setRagQuery] = useState('');
+    const [ragResults, setRagResults] = useState<any[]>([]);
+    const [ragLoading, setRagLoading] = useState(false);
+    const [ragError, setRagError] = useState<string | null>(null);
+
+    const answerService = new AnswerService();
 
     const handleCreateUser = async () => {
         if (newUserName.trim()) {
@@ -24,6 +36,29 @@ export function DebugPanel() {
     const handleDeleteUser = async (id: string) => {
         if (confirm('Are you sure you want to delete this user?')) {
             await deleteUser(id);
+        }
+    };
+
+    const handleRagRequest = async () => {
+        if (!activeProject) {
+            setRagError('No active project selected');
+            return;
+        }
+
+        if (!ragQuery.trim()) {
+            setRagError('Please enter a query');
+            return;
+        }
+
+        setRagLoading(true);
+        setRagError(null);
+        try {
+            const results = await answerService.searchDocuments(activeProject.id, ragQuery.trim());
+            setRagResults(results);
+        } catch (error) {
+            setRagError(error instanceof Error ? error.message : 'RAG request failed');
+        } finally {
+            setRagLoading(false);
         }
     };
 
@@ -178,6 +213,65 @@ export function DebugPanel() {
                                     ))
                                 )}
                             </div>
+                        </div>
+
+                        <div className="space-y-2 pt-4 border-t">
+                            <div className="text-sm font-medium flex items-center gap-2">
+                                <Search className="w-4 h-4" />
+                                RAG Request
+                                {activeProject && (
+                                    <span className="text-muted-foreground text-xs">
+                                        Project: {activeProject.name}
+                                    </span>
+                                )}
+                            </div>
+                            {!activeProject && (
+                                <div className="text-xs text-muted-foreground">
+                                    No active project selected
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <Textarea
+                                    placeholder="Enter your query..."
+                                    value={ragQuery}
+                                    onChange={(e) => setRagQuery(e.target.value)}
+                                    rows={3}
+                                    disabled={!activeProject}
+                                />
+                                <Button
+                                    size="sm"
+                                    onClick={handleRagRequest}
+                                    disabled={ragLoading || !activeProject || !ragQuery.trim()}
+                                    className="w-full"
+                                >
+                                    {ragLoading ? 'Searching...' : 'Send RAG Request'}
+                                </Button>
+                            </div>
+                            {ragError && (
+                                <div className="text-xs text-red-500 p-2 bg-red-50 rounded">
+                                    {ragError}
+                                </div>
+                            )}
+                            {ragResults.length > 0 && (
+                                <div className="space-y-2">
+                                    <div className="text-xs font-medium">Results ({ragResults.length}):</div>
+                                    <div className="max-h-48 overflow-y-auto space-y-2">
+                                        {ragResults.map((result, index) => (
+                                            <div
+                                                key={index}
+                                                className="p-2 bg-muted/50 rounded text-xs border"
+                                            >
+                                                <div className="font-medium mb-1">
+                                                    Score: {result.score?.toFixed(3)}
+                                                </div>
+                                                <div className="text-muted-foreground line-clamp-3">
+                                                    {result.text || result.content || 'No content'}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 )}
