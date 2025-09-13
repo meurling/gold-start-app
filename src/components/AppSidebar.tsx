@@ -1,6 +1,7 @@
-import { 
+import {
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  Upload
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 import { ProjectSelector } from "./ProjectSelector"
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const navigationItems = [
+  { title: "Upload", url: "/upload", icon: Upload },
   { title: "Questions", url: "/questions", icon: HelpCircle },
   { title: "Answers", url: "/answers", icon: MessageSquare },
 ]
