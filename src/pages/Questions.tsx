@@ -303,7 +303,7 @@ export default function Questions() {
                     variant="outline" 
                     onClick={handleAnalyzeAllUnanswered}
                     disabled={analyzing}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
                   >
                     {analyzing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -318,7 +318,7 @@ export default function Questions() {
                 {activeProject && stats.total > 0 && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <Button variant="outline" className="text-slate-500 hover:text-slate-700 hover:bg-slate-50">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete All
                       </Button>
@@ -326,7 +326,7 @@ export default function Questions() {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-red-600" />
+                          <AlertTriangle className="h-5 w-5 text-slate-600" />
                           Delete All Questions
                         </AlertDialogTitle>
                         <AlertDialogDescription>
@@ -338,7 +338,7 @@ export default function Questions() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={handleDeleteAllQuestions}
-                          className="bg-red-600 hover:bg-red-700"
+                          className="bg-slate-600 hover:bg-slate-700"
                         >
                           Delete All Questions
                         </AlertDialogAction>
@@ -376,41 +376,13 @@ export default function Questions() {
               </div>
             </div>
 
-            {/* Statistics */}
+            {/* Statistics - Minimalistic */}
             {activeProject && (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold">{stats.total}</div>
-                    <p className="text-sm text-muted-foreground">Total Questions</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-green-600">{answeredQuestions.length}</div>
-                    <p className="text-sm text-muted-foreground">Answered</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-orange-600">{unansweredQuestions.length}</div>
-                    <p className="text-sm text-muted-foreground">Unanswered</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold">{documentStats.total}</div>
-                    <p className="text-sm text-muted-foreground">Documents</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold">
-                      {Math.round(documentStats.totalSize / 1024 / 1024 * 100) / 100}
-                    </div>
-                    <p className="text-sm text-muted-foreground">MB Uploaded</p>
-                  </CardContent>
-                </Card>
+              <div className="flex items-center gap-6 text-sm text-muted-foreground border-b pb-4">
+                <span>{stats.total} questions</span>
+                <span className="text-emerald-600">{answeredQuestions.length} answered</span>
+                <span className="text-slate-500">{unansweredQuestions.length} unanswered</span>
+                <span>{documentStats.total} documents</span>
               </div>
             )}
 
@@ -429,56 +401,46 @@ export default function Questions() {
               </TabsList>
 
               <TabsContent value="questions" className="space-y-6">
-                {/* Questions Filters */}
-                <Card className="shadow-subtle">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      Filters
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex-1">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input
-                            placeholder="Search questions..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as QuestionCategory | "all")}>
-                        <SelectTrigger className="w-full sm:w-48">
-                          <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          {Object.values(QuestionCategory).map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={stakeholderFilter} onValueChange={(value) => setStakeholderFilter(value as Stakeholder | "all")}>
-                        <SelectTrigger className="w-full sm:w-48">
-                          <SelectValue placeholder="Stakeholder" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Stakeholders</SelectItem>
-                          {Object.values(Stakeholder).map((stakeholder) => (
-                            <SelectItem key={stakeholder} value={stakeholder}>
-                              {stakeholder}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                {/* Questions Filters - Minimalistic */}
+                <div className="flex flex-col sm:flex-row gap-3 pb-4 border-b">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search questions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 border-0 bg-transparent focus-visible:ring-0"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as QuestionCategory | "all")}>
+                    <SelectTrigger className="w-full sm:w-40 border-0 bg-transparent focus:ring-0">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {Object.values(QuestionCategory).map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={stakeholderFilter} onValueChange={(value) => setStakeholderFilter(value as Stakeholder | "all")}>
+                    <SelectTrigger className="w-full sm:w-40 border-0 bg-transparent focus:ring-0">
+                      <SelectValue placeholder="Stakeholder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stakeholders</SelectItem>
+                      {Object.values(Stakeholder).map((stakeholder) => (
+                        <SelectItem key={stakeholder} value={stakeholder}>
+                          {stakeholder}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 {/* Question Status Tabs */}
                 <Tabs value={questionStatusTab} onValueChange={setQuestionStatusTab}>
@@ -499,14 +461,12 @@ export default function Questions() {
 
                   <TabsContent value="all" className="space-y-4">
                     {!activeProject && (
-                      <Card className="mb-4 border-yellow-200 bg-yellow-50">
-                        <CardContent className="p-4">
-                          <p className="text-yellow-800 text-sm">
-                            <strong>Warning:</strong> No project selected. Showing all questions. 
-                            Select a project to see project-specific questions.
-                          </p>
-                        </CardContent>
-                      </Card>
+                      <div className="mb-4 p-3 bg-amber-50 border-l-4 border-amber-200 rounded-r">
+                        <p className="text-amber-800 text-sm">
+                          <strong>Warning:</strong> No project selected. Showing all questions. 
+                          Select a project to see project-specific questions.
+                        </p>
+                      </div>
                     )}
                     <QuestionList questions={filteredQuestions} onAnalyzeQuestion={handleAnalyzeQuestion} analyzing={analyzing} />
                   </TabsContent>

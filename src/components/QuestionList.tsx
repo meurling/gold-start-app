@@ -49,82 +49,80 @@ function QuestionItem({ question, onDeleteQuestion, onAnalyzeQuestion, analyzing
   };
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="secondary">{question.category}</Badge>
-              <Badge variant="outline">{question.stakeholder}</Badge>
-              {isAnswered ? (
-                <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Answered ({answers.length})
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-orange-600 border-orange-200">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Unanswered
-                </Badge>
-              )}
-            </div>
-            <CardTitle className="text-lg leading-relaxed">
-              {question.content}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-2">
-              Created {formatDistanceToNow(new Date(question.createdAt))} ago
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Analyze Button - only show for unanswered questions */}
-            {!isAnswered && onAnalyzeQuestion && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => onAnalyzeQuestion(question)}
-                disabled={analyzing}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              >
-                {analyzing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Brain className="h-4 w-4" />
-                )}
-              </Button>
+    <div className="border-b border-slate-100 py-4">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">{question.category}</span>
+            <span className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">{question.stakeholder}</span>
+            {isAnswered ? (
+              <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Answered ({answers.length})
+              </span>
+            ) : (
+              <span className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded flex items-center gap-1">
+                <XCircle className="h-3 w-3" />
+                Unanswered
+              </span>
             )}
-            
-            {/* Delete Button */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    Delete Question
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this question? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Delete Question
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
+          <h3 className="text-base leading-relaxed text-slate-900 mb-1">
+            {question.content}
+          </h3>
+          <p className="text-xs text-slate-400">
+            Created {formatDistanceToNow(new Date(question.createdAt))} ago
+          </p>
         </div>
-      </CardHeader>
-    </Card>
+        <div className="flex items-center gap-1 ml-4">
+          {/* Analyze Button - only show for unanswered questions */}
+          {!isAnswered && onAnalyzeQuestion && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => onAnalyzeQuestion(question)}
+              disabled={analyzing}
+              className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 h-8 w-8 p-0"
+            >
+              {analyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Brain className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+          
+          {/* Delete Button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 h-8 w-8 p-0">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-slate-600" />
+                  Delete Question
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this question? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-slate-600 hover:bg-slate-700"
+                >
+                  Delete Question
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -137,20 +135,18 @@ export function QuestionList({ questions, onAnalyzeQuestion, analyzing }: Questi
 
   if (questions.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No questions yet</h3>
-          <p className="text-muted-foreground text-center max-w-md">
-            Start by creating your first question to organize and track important inquiries for your project.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-16">
+        <MessageSquare className="h-8 w-8 text-slate-300 mb-3" />
+        <h3 className="text-base font-medium text-slate-600 mb-1">No questions yet</h3>
+        <p className="text-slate-400 text-center max-w-md text-sm">
+          Start by creating your first question to organize and track important inquiries for your project.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {questions.map((question) => (
         <QuestionItem
           key={question.id}
