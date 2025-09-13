@@ -1,4 +1,4 @@
-import weaviate, { ApiKey } from "weaviate-client";
+import weaviate, { ApiKey, vectors, configure } from "weaviate-client";
 
 /*
 export interface DocumentChunk {
@@ -18,7 +18,7 @@ export interface SearchResult {
     score: number;
     highlights?: string[];
 }
-    */
+*/
 
 export class ProjectRag {
     constructor(
@@ -46,6 +46,10 @@ export class ProjectRag {
                 }
             }));
 
+            chunkObjects.forEach((chunk) => {
+                console.log('Ingest chunk: ' + chunk.id +' : (' + chunk.documentId +') : ' + chunk.content);
+            });
+
             await collection.data.insertMany(dataToInsert);
         } catch (error) {
             console.error('Error indexing answer chunks:', error);
@@ -61,6 +65,10 @@ export class ProjectRag {
                 limit,
                 returnMetadata: ['score', 'distance'],
             });
+            console.log('Result: ', result);
+            result.objects.forEach((obj) => {
+                console.log('Object: ', obj);
+            });
 
             return result.objects.map(obj => ({
                 chunk: {
@@ -75,7 +83,7 @@ export class ProjectRag {
                         //category: obj.properties.category as string,
                     }
                 },
-                score: obj.metadata?.score || 0,
+                score: obj.metadata?.score || obj.metadata?.distance || 0,
             }));
         } catch (error) {
             console.error('Error searching chunks:', error);
@@ -110,13 +118,8 @@ async function maybeCreateCollection(client, collectionName) {
                 { name: 'category', dataType: 'text' },
                 { name: 'documentId', dataType: 'text' },
             ],
-            //vectorizer: "text2vec-openai",
-            //moduleConfig: {
-            //    'text2vec-openai': {
-            //        model: 'text-embedding-ada-002',
-            //        type: 'text',
-            //    },
-            //},
+            vectorizers: vectors.text2VecOpenAI(),
+            generative: configure.generative.openAI(),
         });
     } catch (error) {
         console.error('Error creating collection:', error);

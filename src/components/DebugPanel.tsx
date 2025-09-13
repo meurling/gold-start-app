@@ -54,6 +54,7 @@ export function DebugPanel() {
         setRagError(null);
         try {
             const results = await answerService.searchDocuments(activeProject.id, ragQuery.trim());
+            console.log('RESULTS: ', results);
             setRagResults(results);
         } catch (error) {
             setRagError(error instanceof Error ? error.message : 'RAG request failed');
@@ -265,7 +266,7 @@ export function DebugPanel() {
                                                     Score: {result.score?.toFixed(3)}
                                                 </div>
                                                 <div className="text-muted-foreground line-clamp-3">
-                                                    {result.text || result.content || 'No content'}
+                                                    {result.chunk.content || 'No content'}
                                                 </div>
                                             </div>
                                         ))}
