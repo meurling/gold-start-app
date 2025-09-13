@@ -135,6 +135,58 @@ export function useQuestionService() {
     return questionService.canDeleteQuestion(questionId);
   }, []);
 
+  // Delete all questions for a project
+  const deleteAllQuestions = useCallback(async (projectId?: string) => {
+    try {
+      const questionsToDelete = projectId 
+        ? questionService.getQuestionsByProject(projectId)
+        : questionService.getAllQuestions();
+
+      // Delete questions in reverse order (sub-questions first, then root questions)
+      const sortedQuestions = questionsToDelete.sort((a, b) => {
+        if (a.parentQuestionId && !b.parentQuestionId) return -1;
+        if (!a.parentQuestionId && b.parentQuestionId) return 1;
+        return 0;
+      });
+
+      for (const question of sortedQuestions) {
+        const result = await remove(question.id);
+        if (!result.success) {
+          throw new Error(`Failed to delete question: ${result.error?.message}`);
+        }
+      }
+
+      return { success: true, deletedCount: questionsToDelete.length };
+    } catch (error) {
+      throw new Error(`Failed to delete all questions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [remove]);
+
+  // Delete question with sub-questions (cascade delete)
+  const deleteQuestionWithSubQuestions = useCallback(async (questionId: string) => {
+    try {
+      const hierarchy = questionService.getQuestionHierarchy(questionId);
+      
+      // Delete in reverse order (sub-questions first, then root)
+      const sortedQuestions = hierarchy.sort((a, b) => {
+        if (a.parentQuestionId && !b.parentQuestionId) return -1;
+        if (!a.parentQuestionId && b.parentQuestionId) return 1;
+        return 0;
+      });
+
+      for (const question of sortedQuestions) {
+        const result = await remove(question.id);
+        if (!result.success) {
+          throw new Error(`Failed to delete question: ${result.error?.message}`);
+        }
+      }
+
+      return { success: true, deletedCount: hierarchy.length };
+    } catch (error) {
+      throw new Error(`Failed to delete question with sub-questions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [remove]);
+
   return {
     // Data
     questions: localQuestions,
@@ -145,6 +197,8 @@ export function useQuestionService() {
     createQuestion,
     updateQuestion,
     deleteQuestion,
+    deleteAllQuestions,
+    deleteQuestionWithSubQuestions,
     
     // Query methods
     getQuestions,

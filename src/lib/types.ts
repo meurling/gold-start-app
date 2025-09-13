@@ -14,6 +14,9 @@ export interface Project extends BaseEntity {
   isActive: boolean;
 }
 
+// Document processing status
+export type ProcessingStatus = 'not_started' | 'processing' | 'completed' | 'failed';
+
 // Document interface
 export interface Document extends BaseEntity {
   fileName: string;
@@ -22,6 +25,8 @@ export interface Document extends BaseEntity {
   rawText: string;
   userId: string;
   projectId: string;
+  processingStatus: ProcessingStatus;
+  processingError?: string; // Error message if processing failed
 }
 
 // Legacy alias for backward compatibility

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Upload, File } from "lucide-react";
+import { Plus, Search, Filter, Upload, File, Trash2, AlertTriangle } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuestionForm } from "@/components/QuestionForm";
@@ -20,6 +21,7 @@ import { useActiveProject } from "@/hooks/useStorage";
 import { useQuestionService } from "@/hooks/useQuestionService";
 import { useDocumentService } from "@/hooks/useDocumentService";
 import { useUserContext } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Questions() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,11 +32,13 @@ export default function Questions() {
   
   const { activeProject } = useActiveProject();
   const { currentUser } = useUserContext();
+  const { toast } = useToast();
   const { 
     questions, 
     createQuestion, 
     getQuestions,
-    getQuestionStats 
+    getQuestionStats,
+    deleteAllQuestions
   } = useQuestionService();
   
   const {
@@ -44,7 +48,9 @@ export default function Questions() {
     loadDocuments,
     uploadDocument,
     deleteDocument,
-    getDocumentStats
+    getDocumentStats,
+    processDocument,
+    getDocumentsByProcessingStatus
   } = useDocumentService();
   
   // Load documents when project changes
@@ -98,6 +104,61 @@ export default function Questions() {
     await deleteDocument(documentId);
   };
 
+  const handleProcessDocument = async (documentId: string) => {
+    if (!currentUser?.id || !activeProject?.id) {
+      console.error("No user or project selected");
+      return;
+    }
+
+    try {
+      const result = await processDocument(documentId);
+      
+      if (result.success && result.questions) {
+        // Add parsed questions to the project
+        for (const parsedQuestion of result.questions) {
+          await createQuestion({
+            content: parsedQuestion.content,
+            category: parsedQuestion.category,
+            stakeholder: parsedQuestion.stakeholder,
+            userId: currentUser.id,
+            projectId: activeProject.id,
+          });
+        }
+        
+        console.log(`Successfully added ${result.questions.length} questions from document`);
+      } else {
+        console.error('Failed to process document:', result.error);
+      }
+    } catch (error) {
+      console.error('Error processing document:', error);
+    }
+  };
+
+  const handleDeleteAllQuestions = async () => {
+    if (!activeProject?.id) {
+      toast({
+        title: "Error",
+        description: "No project selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await deleteAllQuestions(activeProject.id);
+      toast({
+        title: "All questions deleted",
+        description: `Successfully deleted ${result.deletedCount} questions`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete all questions",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -118,31 +179,67 @@ export default function Questions() {
                   }
                 </p>
               </div>
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DialogTrigger asChild>
-                        <Button disabled={!activeProject}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Question
-                        </Button>
-                      </DialogTrigger>
-                    </TooltipTrigger>
-                    {!activeProject && (
-                      <TooltipContent>
-                        <p>Please select a project first</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Create New Question</DialogTitle>
-                  </DialogHeader>
-                  <QuestionForm onSubmit={handleCreateQuestion} />
-                </DialogContent>
-              </Dialog>
+              <div className="flex items-center gap-2">
+                {/* Delete All Questions Button */}
+                {activeProject && stats.total > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete All
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-600" />
+                          Delete All Questions
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete all {stats.total} questions in this project? 
+                          This action cannot be undone and will permanently remove all questions and their sub-questions.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteAllQuestions}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete All Questions
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+
+                {/* New Question Button */}
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <Button disabled={!activeProject}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Question
+                          </Button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      {!activeProject && (
+                        <TooltipContent>
+                          <p>Please select a project first</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Create New Question</DialogTitle>
+                    </DialogHeader>
+                    <QuestionForm onSubmit={handleCreateQuestion} />
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
             {/* Statistics */}
@@ -274,6 +371,7 @@ export default function Questions() {
                   loading={documentsLoading}
                   error={documentsError}
                   onDelete={handleDeleteDocument}
+                  onProcess={handleProcessDocument}
                 />
               </TabsContent>
             </Tabs>

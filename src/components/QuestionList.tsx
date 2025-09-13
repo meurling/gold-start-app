@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { MessageSquare, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { MessageSquare, ChevronDown, ChevronRight, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { QuestionForm } from "./QuestionForm";
 import { Question } from "@/lib/types";
 import { useQuestionService } from "@/hooks/useQuestionService";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface QuestionListProps {
   questions: Question[];
@@ -18,13 +20,43 @@ interface QuestionItemProps {
   question: Question;
   allQuestions: Question[];
   onAddSubQuestion: (parentId: string, rootId?: string) => void;
+  onDeleteQuestion: (questionId: string) => void;
 }
 
-function QuestionItem({ question, allQuestions, onAddSubQuestion }: QuestionItemProps) {
+function QuestionItem({ question, allQuestions, onAddSubQuestion, onDeleteQuestion }: QuestionItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { canDeleteQuestion, deleteQuestion, deleteQuestionWithSubQuestions } = useQuestionService();
+  const { toast } = useToast();
   
   const subQuestions = allQuestions.filter(q => q.parentQuestionId === question.id);
   const isRootQuestion = !question.parentQuestionId;
+  const canDelete = canDeleteQuestion(question.id);
+  const hasSubQuestions = subQuestions.length > 0;
+
+  const handleDelete = async () => {
+    try {
+      if (hasSubQuestions) {
+        const result = await deleteQuestionWithSubQuestions(question.id);
+        toast({
+          title: "Question deleted",
+          description: `Deleted question and ${result.deletedCount - 1} sub-questions`,
+        });
+      } else {
+        await deleteQuestion(question.id);
+        toast({
+          title: "Question deleted",
+          description: "Question has been successfully deleted",
+        });
+      }
+      onDeleteQuestion(question.id);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete question",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className="mb-4">
@@ -78,6 +110,42 @@ function QuestionItem({ question, allQuestions, onAddSubQuestion }: QuestionItem
                 />
               </DialogContent>
             </Dialog>
+            
+            {/* Delete Button */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    Delete Question
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {hasSubQuestions ? (
+                      <>
+                        This question has {subQuestions.length} sub-question{subQuestions.length > 1 ? 's' : ''}. 
+                        Deleting it will also delete all sub-questions. This action cannot be undone.
+                      </>
+                    ) : (
+                      "Are you sure you want to delete this question? This action cannot be undone."
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete Question{hasSubQuestions ? ' and Sub-questions' : ''}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </CardHeader>
@@ -92,6 +160,7 @@ function QuestionItem({ question, allQuestions, onAddSubQuestion }: QuestionItem
                   question={subQuestion}
                   allQuestions={allQuestions}
                   onAddSubQuestion={onAddSubQuestion}
+                  onDeleteQuestion={onDeleteQuestion}
                 />
               ))}
             </div>
@@ -121,6 +190,12 @@ export function QuestionList({ questions }: QuestionListProps) {
     }
   };
 
+  const handleDeleteQuestion = (questionId: string) => {
+    // This is just a callback for UI updates if needed
+    // The actual deletion is handled in the QuestionItem component
+    console.log(`Question ${questionId} deleted`);
+  };
+
   // Separate root questions and sub-questions
   const rootQuestions = questions.filter(q => !q.parentQuestionId);
   const subQuestions = questions.filter(q => q.parentQuestionId);
@@ -147,6 +222,7 @@ export function QuestionList({ questions }: QuestionListProps) {
           question={question}
           allQuestions={questions}
           onAddSubQuestion={handleAddSubQuestion}
+          onDeleteQuestion={handleDeleteQuestion}
         />
       ))}
     </div>

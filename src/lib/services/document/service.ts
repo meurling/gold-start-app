@@ -1,5 +1,6 @@
-import { Document } from '@/lib/types';
+import { Document, ProcessingStatus } from '@/lib/types';
 import { LocalStorageService } from '@/lib/storage';
+import { documentProcessor, ParsedQuestion } from './processor';
 import * as mammoth from 'mammoth';
 
 // Document service for handling Document operations
@@ -34,6 +35,7 @@ export class DocumentService {
         rawText,
         userId,
         projectId,
+        processingStatus: 'not_started' as ProcessingStatus,
       };
 
       const result = await this.storage.create(document);
@@ -104,6 +106,88 @@ export class DocumentService {
       console.error('Error converting .docx to HTML:', error);
       return `<p>Error converting document to HTML: ${error instanceof Error ? error.message : 'Unknown error'}</p>`;
     }
+  }
+
+  // Process document to extract questions
+  async processDocument(documentId: string): Promise<{
+    success: boolean;
+    questions?: ParsedQuestion[];
+    error?: string;
+  }> {
+    try {
+      // Get the document
+      const documentResult = await this.storage.getById(documentId);
+      if (!documentResult.success || !documentResult.data) {
+        return {
+          success: false,
+          error: 'Document not found'
+        };
+      }
+
+      const document = documentResult.data;
+
+      // Update status to processing
+      await this.updateProcessingStatus(documentId, 'processing');
+
+      // Process the document
+      const processResult = await documentProcessor.processDocument(document);
+
+      if (processResult.success && processResult.questions) {
+        // Update status to completed
+        await this.updateProcessingStatus(documentId, 'completed');
+        
+        return {
+          success: true,
+          questions: processResult.questions
+        };
+      } else {
+        // Update status to failed
+        await this.updateProcessingStatus(documentId, 'failed', processResult.error);
+        
+        return {
+          success: false,
+          error: processResult.error || 'Processing failed'
+        };
+      }
+
+    } catch (error) {
+      // Update status to failed
+      await this.updateProcessingStatus(documentId, 'failed', error instanceof Error ? error.message : 'Unknown error');
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Update processing status
+  private async updateProcessingStatus(
+    documentId: string, 
+    status: ProcessingStatus, 
+    error?: string
+  ): Promise<void> {
+    try {
+      const updates: Partial<Document> = { processingStatus: status };
+      if (error) {
+        updates.processingError = error;
+      }
+      
+      await this.storage.update(documentId, updates);
+    } catch (error) {
+      console.error('Failed to update processing status:', error);
+    }
+  }
+
+  // Get documents by processing status
+  async getDocumentsByProcessingStatus(projectId: string, status: ProcessingStatus): Promise<Document[]> {
+    const result = await this.storage.getAll();
+    if (result.success && result.data) {
+      return result.data.filter(doc => 
+        doc.projectId === projectId && doc.processingStatus === status
+      );
+    }
+    return [];
   }
 
   // Helper methods

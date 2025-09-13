@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Document } from '@/lib/types';
+import { Document, ProcessingStatus } from '@/lib/types';
 import { documentService } from '@/lib/services/document/service';
+import { ParsedQuestion } from '@/lib/services/document/processor';
 
 export function useDocumentService() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -89,6 +90,59 @@ export function useDocumentService() {
     }
   }, []);
 
+  // Process document to extract questions
+  const processDocument = useCallback(async (documentId: string): Promise<{
+    success: boolean;
+    questions?: ParsedQuestion[];
+    error?: string;
+  }> => {
+    // Don't set global loading state - this is a single document operation
+    setError(null);
+
+    try {
+      // Immediately update UI to show processing status
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { ...doc, processingStatus: 'processing' as ProcessingStatus }
+          : doc
+      ));
+
+      const result = await documentService.processDocument(documentId);
+      
+      // Reload documents to get updated processing status
+      const document = await documentService.getDocumentById(documentId);
+      if (document) {
+        setDocuments(prev => prev.map(doc => 
+          doc.id === documentId ? document : doc
+        ));
+      }
+      
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process document';
+      setError(errorMessage);
+      
+      // Update UI to show failed status
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { ...doc, processingStatus: 'failed' as ProcessingStatus, processingError: errorMessage }
+          : doc
+      ));
+      
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  // Get documents by processing status
+  const getDocumentsByProcessingStatus = useCallback(async (projectId: string, status: ProcessingStatus): Promise<Document[]> => {
+    try {
+      return await documentService.getDocumentsByProcessingStatus(projectId, status);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get documents by status');
+      return [];
+    }
+  }, []);
+
   return {
     documents,
     loading,
@@ -98,5 +152,7 @@ export function useDocumentService() {
     deleteDocument,
     getDocumentStats,
     getDocumentById,
+    processDocument,
+    getDocumentsByProcessingStatus,
   };
 }

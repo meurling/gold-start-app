@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, File, X, AlertCircle } from 'lucide-react';
+import { Upload, File, X, AlertCircle, Brain, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -61,35 +61,19 @@ export function DocumentUpload({
 
     // Filter by accepted types
     const validFiles = newFiles.filter(file => {
-      console.log('Processing file:', {
-        name: file.name,
-        nameType: typeof file.name,
-        hasName: !!file.name,
-        nameLength: file.name?.length,
-        nameValue: file.name
-      });
-      
       if (!file.name || typeof file.name !== 'string') {
-        console.log('File rejected: no name or invalid name type', {
-          name: file.name,
-          nameType: typeof file.name,
-          hasName: !!file.name
-        });
         return false;
       }
       
       const parts = file.name.split('.');
       if (parts.length < 2) {
-        console.log('File rejected: no extension', file.name);
         return false; // No extension
       }
       
       const extension = '.' + parts.pop()?.toLowerCase();
-      console.log('Checking extension:', extension, 'against accepted types:', acceptedTypes);
       
       // Also check MIME type as fallback
       const mimeType = file.type;
-      console.log('File MIME type:', mimeType);
       
       const isValid = acceptedTypes.includes(extension) || 
                      (extension === '.docx' && mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
@@ -97,7 +81,6 @@ export function DocumentUpload({
                      (extension === '.pdf' && mimeType === 'application/pdf') ||
                      (extension === '.txt' && mimeType === 'text/plain');
       
-      console.log('File', file.name, 'is valid:', isValid);
       return isValid;
     });
 
@@ -316,8 +299,17 @@ export function DocumentUpload({
               className="w-full bg-green-600 hover:bg-green-700 text-white"
               size="lg"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              {loading ? 'Uploading...' : `Upload ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload {selectedFiles.length} File{selectedFiles.length > 1 ? 's' : ''}
+                </>
+              )}
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
               Files will be processed and stored for question generation

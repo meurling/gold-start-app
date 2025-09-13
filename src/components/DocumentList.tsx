@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { File, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
+import { File, Eye, Trash2, Calendar, User, FileText, Play, CheckCircle, XCircle, Loader2, Brain } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Document } from '@/lib/types';
+import { Progress } from '@/components/ui/progress';
+import { Document, ProcessingStatus } from '@/lib/types';
 import { DocumentViewer } from './DocumentViewer';
 
 interface DocumentListProps {
@@ -14,6 +15,7 @@ interface DocumentListProps {
   error?: string | null;
   onDelete?: (documentId: string) => void;
   onView?: (document: Document) => void;
+  onProcess?: (documentId: string) => void;
 }
 
 export function DocumentList({ 
@@ -21,7 +23,8 @@ export function DocumentList({
   loading = false, 
   error = null, 
   onDelete,
-  onView 
+  onView,
+  onProcess
 }: DocumentListProps) {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
@@ -54,6 +57,39 @@ export function DocumentList({
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+
+  const getProcessingStatusBadge = (status: ProcessingStatus) => {
+    switch (status) {
+      case 'not_started':
+        return <Badge variant="outline" className="text-xs">Not Processed</Badge>;
+      case 'processing':
+        return <Badge variant="secondary" className="text-xs flex items-center gap-1 animate-pulse">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Processing
+        </Badge>;
+      case 'completed':
+        return <Badge variant="default" className="text-xs bg-green-600">Completed</Badge>;
+      case 'failed':
+        return <Badge variant="destructive" className="text-xs">Failed</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">Unknown</Badge>;
+    }
+  };
+
+  const getProcessingStatusIcon = (status: ProcessingStatus) => {
+    switch (status) {
+      case 'not_started':
+        return <Play className="h-4 w-4 text-muted-foreground" />;
+      case 'processing':
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'failed':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Play className="h-4 w-4 text-muted-foreground" />;
+    }
   };
 
   const getDocumentIcon = (documentType: string, fileName?: string) => {
@@ -160,7 +196,11 @@ export function DocumentList({
             {documents.map((document) => (
               <div
                 key={document.id}
-                className="flex items-center gap-3 p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                className={`flex items-center gap-3 p-4 border rounded-lg transition-colors ${
+                  document.processingStatus === 'processing' 
+                    ? 'bg-blue-50/50 border-blue-200 hover:bg-blue-50' 
+                    : 'hover:bg-muted/30'
+                }`}
               >
                 {getDocumentIcon(document.documentType, document.fileName)}
                 
@@ -170,6 +210,7 @@ export function DocumentList({
                     <Badge variant="secondary" className="text-xs">
                       {document.documentType}
                     </Badge>
+                    {getProcessingStatusBadge(document.processingStatus)}
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -185,6 +226,51 @@ export function DocumentList({
                       </span>
                     )}
                   </div>
+                  
+                  {/* Processing indicator */}
+                  {document.processingStatus === 'processing' && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Brain className="h-4 w-4 text-blue-600 animate-pulse" />
+                        <span className="text-sm font-medium text-blue-800">
+                          AI is analyzing this document...
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <Progress value={undefined} className="h-2" />
+                        <p className="text-xs text-blue-600">
+                          Extracting questions and categorizing content
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Processing error */}
+                  {document.processingStatus === 'failed' && document.processingError && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <XCircle className="h-4 w-4 text-red-600" />
+                        <span className="text-sm font-medium text-red-800">
+                          Processing failed
+                        </span>
+                      </div>
+                      <p className="text-xs text-red-600">
+                        {document.processingError}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Processing completed */}
+                  {document.processingStatus === 'completed' && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">
+                          Processing completed successfully
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -197,6 +283,30 @@ export function DocumentList({
                     <Eye className="h-4 w-4" />
                     View
                   </Button>
+                  
+                  {onProcess && document.processingStatus === 'not_started' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onProcess(document.id)}
+                      className="flex items-center gap-1"
+                    >
+                      {getProcessingStatusIcon(document.processingStatus)}
+                      Process
+                    </Button>
+                  )}
+                  
+                  {document.processingStatus === 'processing' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="flex items-center gap-1"
+                    >
+                      {getProcessingStatusIcon(document.processingStatus)}
+                      Processing...
+                    </Button>
+                  )}
                   
                   {onDelete && (
                     <Button

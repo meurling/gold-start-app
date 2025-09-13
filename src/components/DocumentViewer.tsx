@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, File, Download, FileText, Calendar, User, Hash, Eye } from 'lucide-react';
+import { X, File, Download, FileText, Calendar, User, Hash, Eye, Brain, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -278,6 +278,65 @@ export function DocumentViewer({ document, isOpen, onClose }: DocumentViewerProp
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Processing Status Section */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Processing Status</h3>
+                    <div className="p-4 border rounded-lg">
+                      {document.processingStatus === 'not_started' && (
+                        <div className="flex items-center gap-3">
+                          <div className="h-3 w-3 rounded-full bg-gray-300"></div>
+                          <div>
+                            <p className="text-sm font-medium">Not Processed</p>
+                            <p className="text-xs text-muted-foreground">
+                              Document has not been analyzed for questions yet
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {document.processingStatus === 'processing' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Brain className="h-4 w-4 text-blue-600 animate-pulse" />
+                            <div>
+                              <p className="text-sm font-medium text-blue-800">Processing in Progress</p>
+                              <p className="text-xs text-blue-600">
+                                AI is analyzing the document content...
+                              </p>
+                            </div>
+                          </div>
+                          <div className="w-full bg-blue-100 rounded-full h-2">
+                            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {document.processingStatus === 'completed' && (
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <div>
+                            <p className="text-sm font-medium text-green-800">Processing Completed</p>
+                            <p className="text-xs text-green-600">
+                              Document has been successfully analyzed and questions extracted
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {document.processingStatus === 'failed' && (
+                        <div className="flex items-center gap-3">
+                          <XCircle className="h-4 w-4 text-red-600" />
+                          <div>
+                            <p className="text-sm font-medium text-red-800">Processing Failed</p>
+                            <p className="text-xs text-red-600">
+                              {document.processingError || 'An error occurred during processing'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
