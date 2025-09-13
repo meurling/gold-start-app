@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { QuestionDocument } from '@/lib/types';
+import { Document } from '@/lib/types';
 import { documentService } from '@/lib/services/document/service';
 
 interface DocumentViewerProps {
-  document: QuestionDocument;
+  document: Document;
   isOpen: boolean;
   onClose: () => void;
 }

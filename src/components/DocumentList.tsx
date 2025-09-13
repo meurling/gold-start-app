@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { QuestionDocument } from '@/lib/types';
+import { Document } from '@/lib/types';
 import { DocumentViewer } from './DocumentViewer';
 
 interface DocumentListProps {
-  documents: QuestionDocument[];
+  documents: Document[];
   loading?: boolean;
   error?: string | null;
   onDelete?: (documentId: string) => void;
-  onView?: (document: QuestionDocument) => void;
+  onView?: (document: Document) => void;
 }
 
 export function DocumentList({ 
@@ -23,10 +23,10 @@ export function DocumentList({
   onDelete,
   onView 
 }: DocumentListProps) {
-  const [selectedDocument, setSelectedDocument] = useState<QuestionDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  const handleView = (document: QuestionDocument) => {
+  const handleView = (document: Document) => {
     setSelectedDocument(document);
     setIsViewerOpen(true);
     onView?.(document);

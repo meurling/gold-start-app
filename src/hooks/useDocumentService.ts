@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { QuestionDocument } from '@/lib/types';
+import { Document } from '@/lib/types';
 import { documentService } from '@/lib/services/document/service';
 
 export function useDocumentService() {
-  const [documents, setDocuments] = useState<QuestionDocument[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +32,7 @@ export function useDocumentService() {
     file: File,
     userId: string,
     projectId: string
-  ): Promise<{ success: boolean; data?: QuestionDocument; error?: string }> => {
+  ): Promise<{ success: boolean; data?: Document; error?: string }> => {
     setLoading(true);
     setError(null);
 
@@ -80,7 +80,7 @@ export function useDocumentService() {
   }, [documents]);
 
   // Get document by ID
-  const getDocumentById = useCallback(async (id: string): Promise<QuestionDocument | null> => {
+  const getDocumentById = useCallback(async (id: string): Promise<Document | null> => {
     try {
       return await documentService.getDocumentById(id);
     } catch (err) {

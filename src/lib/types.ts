@@ -14,8 +14,8 @@ export interface Project extends BaseEntity {
   isActive: boolean;
 }
 
-// QuestionDocument interface
-export interface QuestionDocument extends BaseEntity {
+// Document interface
+export interface Document extends BaseEntity {
   fileName: string;
   documentType: string; // pdf, word, etc.
   content: string; // base64 encoded byte data for localStorage compatibility
@@ -23,6 +23,9 @@ export interface QuestionDocument extends BaseEntity {
   userId: string;
   projectId: string;
 }
+
+// Legacy alias for backward compatibility
+export type QuestionDocument = Document;
 
 
 // Generic storage interface

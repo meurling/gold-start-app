@@ -1,2 +1,2 @@
 export { DocumentService, documentService } from './service';
-export type { QuestionDocument } from '@/lib/types';
+export type { Document, QuestionDocument } from '@/lib/types';

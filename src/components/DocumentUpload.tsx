@@ -35,14 +35,6 @@ export function DocumentUpload({
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
 
-    console.log('Files received:', files.length);
-    Array.from(files).forEach(file => {
-      console.log('File details:', {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      });
-    });
 
     const newFiles: FileWithProgress[] = Array.from(files).map(file => {
       const fileWithProgress: FileWithProgress = {
@@ -63,14 +55,6 @@ export function DocumentUpload({
         text: file.text.bind(file),
       };
       
-      console.log('Created file with progress:', {
-        originalName: file.name,
-        newName: fileWithProgress.name,
-        originalType: file.type,
-        newType: fileWithProgress.type,
-        hasName: !!fileWithProgress.name,
-        nameType: typeof fileWithProgress.name
-      });
       
       return fileWithProgress;
     });

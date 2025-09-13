@@ -1,13 +1,13 @@
-import { QuestionDocument } from '@/lib/types';
+import { Document } from '@/lib/types';
 import { LocalStorageService } from '@/lib/storage';
 import * as mammoth from 'mammoth';
 
-// Document service for handling QuestionDocument operations
+// Document service for handling Document operations
 export class DocumentService {
-  private storage: LocalStorageService<QuestionDocument>;
+  private storage: LocalStorageService<Document>;
 
   constructor() {
-    this.storage = new LocalStorageService<QuestionDocument>('question-documents');
+    this.storage = new LocalStorageService<Document>('question-documents');
   }
 
   // Upload and create a new document
@@ -15,7 +15,7 @@ export class DocumentService {
     file: File,
     userId: string,
     projectId: string
-  ): Promise<{ success: boolean; data?: QuestionDocument; error?: string }> {
+  ): Promise<{ success: boolean; data?: Document; error?: string }> {
     try {
       // Read file content as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
@@ -27,7 +27,7 @@ export class DocumentService {
       // This is a placeholder - you'll need to implement proper text extraction based on file type
       const rawText = await this.extractTextFromFile(file, arrayBuffer);
 
-      const document: Omit<QuestionDocument, 'id' | 'createdAt' | 'updatedAt'> = {
+      const document: Omit<Document, 'id' | 'createdAt' | 'updatedAt'> = {
         fileName: file.name,
         documentType: this.getDocumentType(file.name),
         content,
@@ -52,7 +52,7 @@ export class DocumentService {
   }
 
   // Get all documents for a project
-  async getDocumentsByProject(projectId: string): Promise<QuestionDocument[]> {
+  async getDocumentsByProject(projectId: string): Promise<Document[]> {
     const result = await this.storage.getAll();
     if (result.success && result.data) {
       return result.data.filter(doc => doc.projectId === projectId);
@@ -61,7 +61,7 @@ export class DocumentService {
   }
 
   // Get document by ID
-  async getDocumentById(id: string): Promise<QuestionDocument | null> {
+  async getDocumentById(id: string): Promise<Document | null> {
     const result = await this.storage.getById(id);
     return result.success ? result.data : null;
   }
@@ -73,7 +73,7 @@ export class DocumentService {
   }
 
   // Get document statistics
-  getDocumentStats(documents: QuestionDocument[]) {
+  getDocumentStats(documents: Document[]) {
     const stats = {
       total: documents.length,
       byType: {} as Record<string, number>,
