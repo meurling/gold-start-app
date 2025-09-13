@@ -7,7 +7,8 @@ import {
   StorageKey, 
   PaginationOptions,
   PaginatedResult,
-  StorageResult 
+  StorageResult,
+  QuestionAnswer
 } from '@/lib/types';
 import { createStorageService } from '@/lib/storage';
 import { 
@@ -220,6 +221,10 @@ export function useQuestions() {
 
 export function useAnswers() {
   return useStorage<Answer>('basic/ANSWERS', validateAnswer);
+}
+
+export function useQuestionAnswers() {
+  return useStorage<QuestionAnswer>('basic/QUESTION_ANSWERS');
 }
 
 // Settings hook (doesn't extend BaseEntity)

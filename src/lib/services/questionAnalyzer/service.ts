@@ -3,6 +3,7 @@ import { Question } from "./types";
 import { AnswerService } from "@/lib/answer";
 import { openaiService } from "@/lib/openai";
 import { debugLogger, logQuestionAnalysis, logError } from "@/lib/debug";
+import { createStorageService } from "@/lib/storage";
 
 export interface QuestionAnalysisResult {
   questionId: string;
@@ -19,6 +20,7 @@ export interface BulkAnalysisResult {
 
 export class QuestionAnalyzerService {
   private answerService: AnswerService;
+  private questionAnswerStorage = createStorageService<QuestionAnswer>('basic/QUESTION_ANSWERS');
 
   constructor() {
     this.answerService = new AnswerService();
@@ -87,6 +89,47 @@ export class QuestionAnalyzerService {
       });
 
       const answers = await this.analyzeWithOpenAI(question, searchResults);
+
+      // Persist answers to storage
+      if (answers.length > 0) {
+        try {
+          // First, remove any existing answers for this question
+          const existingAnswers = await this.questionAnswerStorage.getAll();
+          if (existingAnswers.success && existingAnswers.data) {
+            const answersToDelete = existingAnswers.data.filter(a => a.questionId === question.id);
+            for (const answer of answersToDelete) {
+              await this.questionAnswerStorage.delete(answer.id);
+            }
+          }
+
+          // Then, save the new answers
+          for (const answer of answers) {
+            await this.questionAnswerStorage.create({
+              questionId: answer.questionId,
+              content: answer.content,
+              documentId: answer.documentId
+            });
+          }
+
+          debugLogger.info('Question answers persisted to storage', { 
+            component: 'QuestionAnalyzer', 
+            operation: 'analyzeQuestion',
+            questionId: question.id,
+            projectId
+          }, { 
+            answerCount: answers.length,
+            answers: answers.map(a => ({ id: a.id, documentId: a.documentId }))
+          });
+        } catch (error) {
+          logError('QuestionAnalyzer', 'analyzeQuestion', error, {
+            component: 'QuestionAnalyzer',
+            operation: 'persistAnswers',
+            questionId: question.id,
+            projectId
+          });
+          // Continue even if persistence fails
+        }
+      }
 
       const result = {
         questionId: question.id,

@@ -2,10 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { QuestionAnalyzerService, QuestionAnalysisResult, BulkAnalysisResult } from '@/lib/services/questionAnalyzer';
 import { Question } from '@/lib/services/question/types';
 import { QuestionAnswer } from '@/lib/types';
+import { useQuestionAnswers } from './useStorage';
 
 export interface UseQuestionAnalyzerReturn {
   // State
   analyzing: boolean;
+  isInitialized: boolean;
   analysisResults: Map<string, QuestionAnalysisResult>;
   answers: Map<string, QuestionAnswer[]>;
   
@@ -23,9 +25,10 @@ export interface UseQuestionAnalyzerReturn {
 export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<Map<string, QuestionAnalysisResult>>(new Map());
-  const [answers, setAnswers] = useState<Map<string, QuestionAnswer[]>>(new Map());
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const analyzerService = new QuestionAnalyzerService();
+  const { data: questionAnswers, loading: answersLoading } = useQuestionAnswers();
 
   // Storage key for persisting analysis results
   const STORAGE_KEY = 'question-analysis-results';
@@ -37,7 +40,6 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       if (stored) {
         const parsedData = JSON.parse(stored);
         const resultsMap = new Map<string, QuestionAnalysisResult>();
-        const answersMap = new Map<string, QuestionAnswer[]>();
         
         // Convert the stored data back to Maps
         Object.entries(parsedData.results || {}).forEach(([questionId, result]) => {
@@ -56,7 +58,6 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
           };
           
           resultsMap.set(questionId, processedResult);
-          answersMap.set(questionId, answersWithDates);
         });
         
         console.log('Loaded analysis results from localStorage:', {
@@ -66,12 +67,25 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
         });
         
         setAnalysisResults(resultsMap);
-        setAnswers(answersMap);
       }
     } catch (error) {
       console.error('Failed to load analysis results from storage:', error);
     }
   }, []);
+
+  // Initialize when both analysis results and question answers are loaded
+  useEffect(() => {
+    if (!answersLoading) {
+      setIsInitialized(true);
+      console.log('Question analyzer initialized with answers:', {
+        totalAnswers: questionAnswers.length,
+        answersByQuestion: questionAnswers.reduce((acc, answer) => {
+          acc[answer.questionId] = (acc[answer.questionId] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+    }
+  }, [answersLoading, questionAnswers]);
 
   // Save analysis results to localStorage whenever they change
   useEffect(() => {
@@ -91,9 +105,8 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
     try {
       const result = await analyzerService.analyzeQuestion(question, projectId);
       
-      // Update state
+      // Update analysis results state
       setAnalysisResults(prev => new Map(prev).set(question.id, result));
-      setAnswers(prev => new Map(prev).set(question.id, result.answers));
       
       return result;
     } finally {
@@ -108,21 +121,18 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       
       // Update state with all results
       const newAnalysisResults = new Map(analysisResults);
-      const newAnswers = new Map(answers);
       
       result.results.forEach(questionResult => {
         newAnalysisResults.set(questionResult.questionId, questionResult);
-        newAnswers.set(questionResult.questionId, questionResult.answers);
       });
       
       setAnalysisResults(newAnalysisResults);
-      setAnswers(newAnswers);
       
       return result;
     } finally {
       setAnalyzing(false);
     }
-  }, [analyzerService, analysisResults, answers]);
+  }, [analyzerService, analysisResults]);
 
   const hasAnswers = useCallback(async (question: Question, projectId: string): Promise<boolean> => {
     try {
@@ -135,7 +145,6 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
 
   const clearResults = useCallback(() => {
     setAnalysisResults(new Map());
-    setAnswers(new Map());
     // Also clear from localStorage
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -145,27 +154,34 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
   }, [STORAGE_KEY]);
 
   const isQuestionAnswered = useCallback((questionId: string): boolean => {
-    const result = analysisResults.get(questionId);
-    const isAnswered = result?.isAnswered ?? false;
+    // If not initialized yet, return false to avoid showing incorrect state
+    if (!isInitialized) {
+      return false;
+    }
+    
+    // Check if there are answers in the main storage system
+    const hasAnswers = questionAnswers.some(answer => answer.questionId === questionId);
     
     // Debug logging
     console.log(`isQuestionAnswered(${questionId}):`, {
-      hasResult: !!result,
-      isAnswered,
-      answersCount: result?.answers?.length || 0
+      isInitialized,
+      hasAnswers,
+      totalAnswers: questionAnswers.length,
+      answersForQuestion: questionAnswers.filter(a => a.questionId === questionId).length
     });
     
-    return isAnswered;
-  }, [analysisResults]);
+    return hasAnswers;
+  }, [isInitialized, questionAnswers]);
 
   const getQuestionAnswers = useCallback((questionId: string): QuestionAnswer[] => {
-    return answers.get(questionId) ?? [];
-  }, [answers]);
+    return questionAnswers.filter(answer => answer.questionId === questionId);
+  }, [questionAnswers]);
 
   return {
     analyzing,
+    isInitialized,
     analysisResults,
-    answers,
+    answers: new Map(), // Keep for backward compatibility but not used
     analyzeQuestion,
     analyzeQuestions,
     hasAnswers,

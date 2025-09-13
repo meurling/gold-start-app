@@ -48,6 +48,7 @@ export default function Questions() {
   
   const {
     analyzing,
+    isInitialized,
     analyzeQuestion,
     analyzeQuestions,
     isQuestionAnswered,
@@ -88,17 +89,20 @@ export default function Questions() {
   // Filter questions by answered/unanswered status
   const filteredQuestions = allFilteredQuestions.filter(question => {
     if (questionStatusTab === "all") return true;
+    // If not initialized yet, show all questions to avoid incorrect filtering
+    if (!isInitialized) return true;
     if (questionStatusTab === "answered") return isQuestionAnswered(question.id);
     if (questionStatusTab === "unanswered") return !isQuestionAnswered(question.id);
     return true;
   });
 
   // Get counts for statistics
-  const answeredQuestions = allFilteredQuestions.filter(q => isQuestionAnswered(q.id));
-  const unansweredQuestions = allFilteredQuestions.filter(q => !isQuestionAnswered(q.id));
+  const answeredQuestions = allFilteredQuestions.filter(q => isInitialized && isQuestionAnswered(q.id));
+  const unansweredQuestions = allFilteredQuestions.filter(q => isInitialized && !isQuestionAnswered(q.id));
   
   // Debug logging
   console.log('Questions page filtering:', {
+    isInitialized,
     totalQuestions: allFilteredQuestions.length,
     answeredCount: answeredQuestions.length,
     unansweredCount: unansweredQuestions.length,

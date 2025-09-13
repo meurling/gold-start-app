@@ -26,10 +26,10 @@ interface QuestionItemProps {
 
 function QuestionItem({ question, onDeleteQuestion, onAnalyzeQuestion, analyzing }: QuestionItemProps) {
   const { deleteQuestion } = useQuestionService();
-  const { isQuestionAnswered, getQuestionAnswers } = useQuestionAnalyzer();
+  const { isInitialized, isQuestionAnswered, getQuestionAnswers } = useQuestionAnalyzer();
   const { toast } = useToast();
   
-  const isAnswered = isQuestionAnswered(question.id);
+  const isAnswered = isInitialized && isQuestionAnswered(question.id);
   const answers = getQuestionAnswers(question.id);
 
   const handleDelete = async () => {
