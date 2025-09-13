@@ -13,9 +13,10 @@ interface DocumentViewerProps {
   document: Document;
   isOpen: boolean;
   onClose: () => void;
+  highlightText?: string; // Text to highlight in the document
 }
 
-export function DocumentViewer({ document, isOpen, onClose }: DocumentViewerProps) {
+export function DocumentViewer({ document, isOpen, onClose, highlightText }: DocumentViewerProps) {
   const [activeTab, setActiveTab] = useState<'content' | 'metadata'>('content');
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loadingHtml, setLoadingHtml] = useState(false);
@@ -56,6 +57,20 @@ export function DocumentViewer({ document, isOpen, onClose }: DocumentViewerProp
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+
+  // Function to highlight text in content
+  const highlightTextInContent = (content: string, highlightText?: string) => {
+    if (!highlightText || !content) return content;
+    
+    // Escape special regex characters in the highlight text
+    const escapedText = highlightText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Create a regex to find the text (case insensitive)
+    const regex = new RegExp(`(${escapedText})`, 'gi');
+    
+    // Replace with highlighted version
+    return content.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
   };
 
   const handleDownload = () => {
@@ -163,9 +178,18 @@ export function DocumentViewer({ document, isOpen, onClose }: DocumentViewerProp
                 <div className="p-4">
                   {document.rawText ? (
                     <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                        {document.rawText}
-                      </pre>
+                      {highlightText ? (
+                        <div 
+                          className="whitespace-pre-wrap font-sans text-sm leading-relaxed"
+                          dangerouslySetInnerHTML={{ 
+                            __html: highlightTextInContent(document.rawText, highlightText) 
+                          }}
+                        />
+                      ) : (
+                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                          {document.rawText}
+                        </pre>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12">
@@ -192,7 +216,9 @@ export function DocumentViewer({ document, isOpen, onClose }: DocumentViewerProp
                     ) : (
                       <div 
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: htmlContent }}
+                        dangerouslySetInnerHTML={{ 
+                          __html: highlightText ? highlightTextInContent(htmlContent, highlightText) : htmlContent 
+                        }}
                       />
                     )}
                   </div>

@@ -21,6 +21,7 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
   const [documents, setDocuments] = useState<Map<string, Document>>(new Map());
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedAnswerText, setSelectedAnswerText] = useState<string | null>(null);
   const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false);
   
   const { getDocumentById } = useDocumentService();
@@ -55,10 +56,11 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
     loadDocuments();
   }, [answers, getDocumentById]);
 
-  const handleDocumentClick = (documentId: string) => {
+  const handleDocumentClick = (documentId: string, answerText: string) => {
     const document = documents.get(documentId);
     if (document) {
       setSelectedDocument(document);
+      setSelectedAnswerText(answerText);
       setIsDocumentViewerOpen(true);
     }
   };
@@ -131,7 +133,7 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
                               <Button
                                 variant="link"
                                 size="sm"
-                                onClick={() => handleDocumentClick(answer.documentId)}
+                                onClick={() => handleDocumentClick(answer.documentId, answer.content)}
                                 className="h-auto p-0 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                                 disabled={!document}
                               >
@@ -153,6 +155,10 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
                             <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">
                               {answer.content}
                             </p>
+                            <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              Click document name to view full document with this text highlighted
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -170,9 +176,11 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
         <DocumentViewer
           document={selectedDocument}
           isOpen={isDocumentViewerOpen}
+          highlightText={selectedAnswerText || undefined}
           onClose={() => {
             setIsDocumentViewerOpen(false);
             setSelectedDocument(null);
+            setSelectedAnswerText(null);
           }}
         />
       )}
