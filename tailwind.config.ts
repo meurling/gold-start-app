@@ -13,6 +13,17 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        'h1': ['28px', { lineHeight: '1.2', fontWeight: '700' }],
+        'h2': ['22px', { lineHeight: '1.3', fontWeight: '600' }],
+        'h3': ['18px', { lineHeight: '1.4', fontWeight: '600' }],
+        'body': ['16px', { lineHeight: '1.5', fontWeight: '400' }],
+        'body-sm': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
+        'small': ['12px', { lineHeight: '1.4', fontWeight: '500' }],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -22,6 +33,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -31,6 +43,8 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -57,6 +71,9 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      boxShadow: {
+        'subtle': 'var(--shadow-subtle)',
       },
       borderRadius: {
         lg: "var(--radius)",
