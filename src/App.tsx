@@ -3,17 +3,33 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { UserProvider, useUserContext } from "./contexts/UserContext";
+import { DebugPanel } from "./components/DebugPanel";
+import { UserOnboarding } from "./components/UserOnboarding";
 import Index from "./pages/Index";
 import Questions from "./pages/Questions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+const AppContent = () => {
+  const { users, isLoading, currentUser } = useUserContext();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <UserOnboarding />;
+  }
+
+  return (
+    <>
+      <DebugPanel />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -22,7 +38,19 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
+    </>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <UserProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AppContent />
+      </TooltipProvider>
+    </UserProvider>
   </QueryClientProvider>
 );
 

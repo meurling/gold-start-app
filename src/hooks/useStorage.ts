@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Question, 
   Answer, 
-  User, 
   AppSettings, 
   Project,
   BaseEntity,
-  StorageKeys, 
+  StorageKey, 
   PaginationOptions,
   PaginatedResult,
   StorageResult 
@@ -23,7 +22,7 @@ import {
 
 // Generic storage hook
 function useStorage<T extends BaseEntity>(
-  key: StorageKeys,
+  key: StorageKey,
   validator?: (data: Partial<T>) => ValidationResult
 ) {
   const [data, setData] = useState<T[]>([]);
@@ -212,15 +211,11 @@ function useStorage<T extends BaseEntity>(
 
 // Specific hooks for each entity type
 export function useQuestions() {
-  return useStorage<Question>(StorageKeys.QUESTIONS, validateQuestion);
+  return useStorage<Question>('basic/QUESTIONS', validateQuestion);
 }
 
 export function useAnswers() {
-  return useStorage<Answer>(StorageKeys.ANSWERS, validateAnswer);
-}
-
-export function useUsers() {
-  return useStorage<User>(StorageKeys.USERS, validateUser);
+  return useStorage<Answer>('basic/ANSWERS', validateAnswer);
 }
 
 // Settings hook (doesn't extend BaseEntity)
@@ -229,7 +224,7 @@ export function useSettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const settingsStorage = useMemo(() => createStorageService<AppSettings>(StorageKeys.SETTINGS), []);
+  const settingsStorage = useMemo(() => createStorageService<AppSettings>('basic/SETTINGS'), []);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -318,95 +313,7 @@ export function useSettings() {
 }
 
 export function useProjects() {
-  return useStorage<Project>(StorageKeys.PROJECTS, validateProject);
-}
-
-// Hook for current user
-export function useCurrentUser() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const userStorage = useMemo(() => createStorageService<User>(StorageKeys.CURRENT_USER), []);
-
-  const loadCurrentUser = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await userStorage.getAll();
-      
-      if (result.success && result.data && result.data.length > 0) {
-        setCurrentUser(result.data[0]);
-      } else {
-        setCurrentUser(null);
-      }
-    } catch (err) {
-      setError('Failed to load current user');
-    } finally {
-      setLoading(false);
-    }
-  }, [userStorage]);
-
-  const setUser = useCallback(async (user: User) => {
-    try {
-      setError(null);
-      
-      // Validate user
-      const validation = validateUser(user);
-      if (!validation.isValid) {
-        setError(`Validation failed: ${validation.errors.map(e => e.message).join(', ')}`);
-        return { success: false, error: validation.errors };
-      }
-
-      // Clear existing current user and set new one
-      await userStorage.clear();
-      const result = await userStorage.create(user);
-      
-      if (result.success && result.data) {
-        setCurrentUser(result.data);
-        return { success: true, data: result.data };
-      } else {
-        setError(result.error?.message || 'Failed to set current user');
-        return { success: false, error: result.error };
-      }
-    } catch (err) {
-      const errorMsg = 'An unexpected error occurred';
-      setError(errorMsg);
-      return { success: false, error: { code: 'UNEXPECTED_ERROR', message: errorMsg } };
-    }
-  }, [userStorage]);
-
-  const clearUser = useCallback(async () => {
-    try {
-      setError(null);
-      const result = await userStorage.clear();
-      
-      if (result.success) {
-        setCurrentUser(null);
-        return { success: true };
-      } else {
-        setError(result.error?.message || 'Failed to clear current user');
-        return { success: false, error: result.error };
-      }
-    } catch (err) {
-      const errorMsg = 'An unexpected error occurred';
-      setError(errorMsg);
-      return { success: false, error: { code: 'UNEXPECTED_ERROR', message: errorMsg } };
-    }
-  }, [userStorage]);
-
-  useEffect(() => {
-    loadCurrentUser();
-  }, [loadCurrentUser]);
-
-  return {
-    currentUser,
-    loading,
-    error,
-    setUser,
-    clearUser,
-    refresh: loadCurrentUser
-  };
+  return useStorage<Project>('basic/PROJECTS', validateProject);
 }
 
 // Hook for active project
@@ -415,7 +322,7 @@ export function useActiveProject() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const projectStorage = useMemo(() => createStorageService<Project>(StorageKeys.ACTIVE_PROJECT), []);
+  const projectStorage = useMemo(() => createStorageService<Project>('basic/ACTIVE_PROJECT'), []);
 
   const loadActiveProject = useCallback(async () => {
     try {

@@ -11,6 +11,7 @@ export interface UseUserReturn {
     createUser: (name: string, role: Role) => Promise<User | null>;
     deleteUser: (id: UserId) => Promise<void>;
     switchUser: (id: UserId) => Promise<void>;
+    clearCurrentUser: () => void;
     refreshUsers: () => Promise<void>;
 }
 
@@ -78,6 +79,11 @@ export function useUser(): UseUserReturn {
         }
     }, []);
 
+    const clearCurrentUser = useCallback(() => {
+        userStorage.clearCurrentUser();
+        setCurrentUser(null);
+    }, []);
+
     const refreshUsers = useCallback(async (): Promise<void> => {
         await loadUsers();
     }, [loadUsers]);
@@ -90,6 +96,7 @@ export function useUser(): UseUserReturn {
         createUser,
         deleteUser,
         switchUser,
+        clearCurrentUser,
         refreshUsers,
     };
 }
