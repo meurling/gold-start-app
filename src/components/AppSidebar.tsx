@@ -21,9 +21,9 @@ import {
 } from "@/components/ui/sidebar"
 
 const navigationItems = [
-  { title: "Documents", url: "/documents", icon: FileText },
   { title: "Questions", url: "/questions", icon: HelpCircle },
   { title: "Answer", url: "/answers", icon: MessageSquare },
+  { title: "Documents", url: "/documents", icon: FileText },
 ]
 
 export function AppSidebar() {
