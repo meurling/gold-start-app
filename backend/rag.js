@@ -87,7 +87,7 @@ export class ProjectRag {
 }
 
 function toCollectionName(projectId, collection) {
-    return `${projectId}_${collection}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    return `${collection}_${projectId}`.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
 async function maybeCreateCollection(client, collectionName) {
