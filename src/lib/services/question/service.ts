@@ -11,6 +11,7 @@ export class QuestionService {
 
   // Set questions data (called by the hook)
   setQuestions(questions: Question[]) {
+    console.log('QuestionService: setQuestions called with', questions);
     this.questions = questions;
     this.notifyListeners();
   }
@@ -24,6 +25,7 @@ export class QuestionService {
   }
 
   private notifyListeners() {
+    console.log('QuestionService: notifyListeners called with questions:', this.questions);
     this.listeners.forEach(listener => listener(this.questions));
   }
 
@@ -34,10 +36,15 @@ export class QuestionService {
 
   // Get questions by filters
   getQuestions(filters: QuestionFilters = {}): Question[] {
+    console.log('QuestionService: getQuestions called with filters:', filters);
+    console.log('QuestionService: current questions:', this.questions);
+    
     let filtered = [...this.questions];
 
     if (filters.projectId) {
+      console.log('QuestionService: filtering by projectId:', filters.projectId);
       filtered = filtered.filter(q => q.projectId === filters.projectId);
+      console.log('QuestionService: filtered questions:', filtered);
     }
 
     if (filters.category) {
@@ -154,6 +161,7 @@ export class QuestionService {
     subQuestions: number;
   } {
     const questions = projectId ? this.getQuestionsByProject(projectId) : this.questions;
+    console.log('QuestionService: getQuestionStats called with projectId:', projectId, 'questions:', questions);
     
     const stats = {
       total: questions.length,

@@ -17,7 +17,7 @@ import { QuestionList } from "@/components/QuestionList";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentList } from "@/components/DocumentList";
 import { Question, QuestionCategory, Stakeholder } from "@/lib/services/question";
-import { useActiveProject } from "@/hooks/useStorage";
+import { useActiveProject, useProjects } from "@/hooks/useStorage";
 import { useQuestionService } from "@/hooks/useQuestionService";
 import { useDocumentService } from "@/hooks/useDocumentService";
 import { useUserContext } from "@/contexts/UserContext";
@@ -30,7 +30,8 @@ export default function Questions() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("questions");
   
-  const { activeProject } = useActiveProject();
+  const { activeProject, setActive } = useActiveProject();
+  const { data: projects, create: createProject } = useProjects();
   const { currentUser } = useUserContext();
   const { toast } = useToast();
   const { 
@@ -38,7 +39,9 @@ export default function Questions() {
     createQuestion, 
     getQuestions,
     getQuestionStats,
-    deleteAllQuestions
+    deleteAllQuestions,
+    loading,
+    error
   } = useQuestionService();
   
   const {
@@ -66,13 +69,23 @@ export default function Questions() {
 
   // Use the service to filter questions
   const filteredQuestions = getQuestions({
-    projectId: activeProject?.id,
+    projectId: activeProject?.id, // If no project selected, show all questions
     category: categoryFilter === "all" ? undefined : categoryFilter,
     stakeholder: stakeholderFilter === "all" ? undefined : stakeholderFilter,
     searchTerm: searchTerm || undefined,
   });
+  
 
   const handleCreateQuestion = async (newQuestion: Omit<Question, "id" | "createdAt" | "updatedAt">) => {
+    if (!activeProject) {
+      toast({
+        title: "No Project Selected",
+        description: "Please select a project before creating questions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await createQuestion({
         content: newQuestion.content,
@@ -81,11 +94,20 @@ export default function Questions() {
         parentQuestionId: newQuestion.parentQuestionId,
         rootQuestionId: newQuestion.rootQuestionId,
         userId: newQuestion.userId,
-        projectId: newQuestion.projectId,
+        projectId: activeProject.id, // Always use the active project ID
       });
       setIsCreateDialogOpen(false);
+      toast({
+        title: "Question Created",
+        description: "Question has been successfully created.",
+      });
     } catch (error) {
       console.error("Error creating question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create question. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -106,7 +128,11 @@ export default function Questions() {
 
   const handleProcessDocument = async (documentId: string) => {
     if (!currentUser?.id || !activeProject?.id) {
-      console.error("No user or project selected");
+      toast({
+        title: "No Project Selected",
+        description: "Please select a project before processing documents.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -114,23 +140,34 @@ export default function Questions() {
       const result = await processDocument(documentId);
       
       if (result.success && result.questions) {
-        // Add parsed questions to the project
+        // Add parsed questions to the active project
         for (const parsedQuestion of result.questions) {
           await createQuestion({
             content: parsedQuestion.content,
             category: parsedQuestion.category,
             stakeholder: parsedQuestion.stakeholder,
             userId: currentUser.id,
-            projectId: activeProject.id,
+            projectId: activeProject.id, // Always use the active project ID
           });
         }
         
-        console.log(`Successfully added ${result.questions.length} questions from document`);
+        toast({
+          title: "Document Processed",
+          description: `Successfully added ${result.questions.length} questions from document to ${activeProject.name}.`,
+        });
       } else {
-        console.error('Failed to process document:', result.error);
+        toast({
+          title: "Processing Failed",
+          description: result.error || "Failed to process document.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error processing document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process document. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -288,6 +325,7 @@ export default function Questions() {
               </div>
             )}
 
+
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
               <TabsList className="grid w-full grid-cols-2">
@@ -354,6 +392,16 @@ export default function Questions() {
                 </Card>
 
                 {/* Questions List */}
+                {!activeProject && (
+                  <Card className="mb-4 border-yellow-200 bg-yellow-50">
+                    <CardContent className="p-4">
+                      <p className="text-yellow-800 text-sm">
+                        <strong>Warning:</strong> No project selected. Showing all questions. 
+                        Select a project to see project-specific questions.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
                 <QuestionList questions={filteredQuestions} />
               </TabsContent>
 

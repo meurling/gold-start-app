@@ -11,7 +11,6 @@ export type StorageKey = string;
 export interface Project extends BaseEntity {
   name: string;
   description?: string;
-  isActive: boolean;
 }
 
 // Document processing status

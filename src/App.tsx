@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider, useUserContext } from "./contexts/UserContext";
-import { DebugPanel } from "./components/DebugPanel";
 import { UserOnboarding } from "./components/UserOnboarding";
 import Index from "./pages/Index";
 import Questions from "./pages/Questions";
@@ -29,7 +28,6 @@ const AppContent = () => {
 
   return (
     <>
-      <DebugPanel />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />

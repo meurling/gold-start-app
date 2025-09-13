@@ -37,6 +37,8 @@ function useStorage<T extends BaseEntity>(
       setError(null);
       const result = await storage.getAll();
       
+      // console.log(`useStorage[${key}]: loadData result`, result);
+      
       if (result.success && result.data) {
         setData(result.data);
       } else {
@@ -47,7 +49,7 @@ function useStorage<T extends BaseEntity>(
     } finally {
       setLoading(false);
     }
-  }, [storage]);
+  }, [storage, key]);
 
   // Create new item
   const create = useCallback(async (item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -66,7 +68,10 @@ function useStorage<T extends BaseEntity>(
       const result = await storage.create(item);
       
       if (result.success && result.data) {
-        setData(prev => [...prev, result.data!]);
+        setData(prev => {
+          const newData = [...prev, result.data!];
+          return newData;
+        });
         return { success: true, data: result.data };
       } else {
         setError(result.error?.message || 'Failed to create item');
@@ -317,29 +322,39 @@ export function useProjects() {
 
 // Hook for active project
 export function useActiveProject() {
-  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const projectStorage = useMemo(() => createStorageService<Project>('basic/ACTIVE_PROJECT'), []);
+  // Get all projects to find the active one
+  const { data: projects } = useProjects();
 
-  const loadActiveProject = useCallback(async () => {
+  // Find the active project from the projects list
+  const activeProject = projects.find(p => p.id === activeProjectId) || null;
+  
+  // Debug logging (can be removed in production)
+  // console.log('useActiveProject - projects:', projects);
+  // console.log('useActiveProject - activeProjectId:', activeProjectId);
+  // console.log('useActiveProject - activeProject:', activeProject);
+
+  const loadActiveProjectId = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await projectStorage.getAll();
       
-      if (result.success && result.data && result.data.length > 0) {
-        setActiveProject(result.data[0]);
+      // Load active project ID from localStorage
+      const stored = localStorage.getItem('basic/ACTIVE_PROJECT_ID');
+      if (stored) {
+        setActiveProjectId(stored);
       } else {
-        setActiveProject(null);
+        setActiveProjectId(null);
       }
     } catch (err) {
-      setError('Failed to load active project');
+      setError('Failed to load active project ID');
     } finally {
       setLoading(false);
     }
-  }, [projectStorage]);
+  }, []);
 
   const setActive = useCallback(async (project: Project) => {
     try {
@@ -352,54 +367,46 @@ export function useActiveProject() {
         return { success: false, error: validation.errors };
       }
 
-      // Clear existing active project and set new one
-      await projectStorage.clear();
-      const result = await projectStorage.create(project);
+      // Store the active project ID
+      localStorage.setItem('basic/ACTIVE_PROJECT_ID', project.id);
+      setActiveProjectId(project.id);
       
-      if (result.success && result.data) {
-        setActiveProject(result.data);
-        return { success: true, data: result.data };
-      } else {
-        setError(result.error?.message || 'Failed to set active project');
-        return { success: false, error: result.error };
-      }
+      return { success: true, data: project };
     } catch (err) {
       const errorMsg = 'An unexpected error occurred';
       setError(errorMsg);
       return { success: false, error: { code: 'UNEXPECTED_ERROR', message: errorMsg } };
     }
-  }, [projectStorage]);
+  }, []);
 
   const clearActive = useCallback(async () => {
     try {
       setError(null);
-      const result = await projectStorage.clear();
       
-      if (result.success) {
-        setActiveProject(null);
-        return { success: true };
-      } else {
-        setError(result.error?.message || 'Failed to clear active project');
-        return { success: false, error: result.error };
-      }
+      // Remove the active project ID
+      localStorage.removeItem('basic/ACTIVE_PROJECT_ID');
+      setActiveProjectId(null);
+      
+      return { success: true };
     } catch (err) {
       const errorMsg = 'An unexpected error occurred';
       setError(errorMsg);
       return { success: false, error: { code: 'UNEXPECTED_ERROR', message: errorMsg } };
     }
-  }, [projectStorage]);
+  }, []);
 
   useEffect(() => {
-    loadActiveProject();
-  }, [loadActiveProject]);
+    loadActiveProjectId();
+  }, [loadActiveProjectId]);
 
   return {
     activeProject,
+    activeProjectId,
     loading,
     error,
     setActive,
     clearActive,
-    refresh: loadActiveProject
+    refresh: loadActiveProjectId
   };
 }
 

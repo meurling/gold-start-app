@@ -24,8 +24,15 @@ export function ProjectSelector({ isCollapsed = false }: ProjectSelectorProps) {
   const { activeProject, setActive } = useActiveProject();
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
 
+  // Debug logging
+  console.log('ProjectSelector - projects:', projects);
+  console.log('ProjectSelector - activeProject:', activeProject);
+  console.log('ProjectSelector - loading:', loading);
+
   const handleProjectSelect = async (project: Project) => {
-    await setActive(project);
+    console.log('ProjectSelector - selecting project:', project);
+    const result = await setActive(project);
+    console.log('ProjectSelector - setActive result:', result);
   };
 
   const handleCreateNew = () => {

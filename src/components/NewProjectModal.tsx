@@ -41,20 +41,25 @@ export function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjec
     setError(null);
 
     try {
+      console.log('NewProjectModal - creating project:', formData);
       const result = await create({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        isActive: false, // Will be set to active when selected
       });
 
+      console.log('NewProjectModal - create result:', result);
+
       if (result.success && result.data) {
+        console.log('NewProjectModal - project created successfully:', result.data);
         onProjectCreated(result.data);
         setFormData({ name: '', description: '' });
         onClose();
       } else {
+        console.error('NewProjectModal - create failed:', result.error);
         setError(result.error?.message || 'Failed to create project');
       }
     } catch (err) {
+      console.error('NewProjectModal - create error:', err);
       setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
