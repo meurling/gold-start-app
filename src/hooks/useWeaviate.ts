@@ -6,7 +6,8 @@ import {
   AnswerSearchResult,
   ProjectSearchResult,
 } from '@/lib/services/weaviateTypes';
-import { Question, Answer, Project } from '@/lib/types';
+import { Question, Answer } from '@/lib/services/question';
+import { Project } from '@/lib/types';
 
 export interface UseWeaviateState {
   isConnected: boolean;

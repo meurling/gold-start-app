@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { QuestionForm } from "@/components/QuestionForm";
 import { QuestionList } from "@/components/QuestionList";
-import { Question, QuestionCategory, Stakeholder } from "@/lib/types";
+import { Question, QuestionCategory, Stakeholder } from "@/lib/services/question";
 import { useActiveProject } from "@/hooks/useStorage";
 import { useQuestionService } from "@/hooks/useQuestionService";
 

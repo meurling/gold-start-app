@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Question, Answer } from '@/lib/services/question';
 import { 
-  Question, 
-  Answer, 
   AppSettings, 
   Project,
   BaseEntity,

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Question, QuestionCategory, Stakeholder } from '@/lib/types';
+import { Question, QuestionCategory, Stakeholder, CreateQuestionRequest, UpdateQuestionRequest, QuestionFilters, questionService } from '@/lib/services/question';
 import { useQuestions } from './useStorage';
-import { questionService, CreateQuestionRequest, UpdateQuestionRequest, QuestionFilters } from '@/lib/services/questionService';
 
 export function useQuestionService() {
   const { data: questions, create, update, remove, loading, error } = useQuestions();
