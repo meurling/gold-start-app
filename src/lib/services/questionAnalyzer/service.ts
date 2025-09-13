@@ -2,6 +2,7 @@ import { QuestionAnswer } from "@/lib/types";
 import { Question } from "./types";
 import { AnswerService } from "@/lib/answer";
 import { openaiService } from "@/lib/openai";
+import { debugLogger, logQuestionAnalysis, logError } from "@/lib/debug";
 
 export interface QuestionAnalysisResult {
   questionId: string;
@@ -30,15 +31,46 @@ export class QuestionAnalyzerService {
     question: Question,
     projectId: string
   ): Promise<QuestionAnalysisResult> {
+    logQuestionAnalysis('analyzeQuestion_start', question.id, projectId, {
+      questionContent: question.content,
+      questionCategory: question.category,
+      questionStakeholder: question.stakeholder
+    });
+
     try {
       // Search for relevant documents using the answer service
+      debugLogger.debug('Searching for relevant documents', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'analyzeQuestion',
+        questionId: question.id,
+        projectId
+      }, { query: question.content, limit: 10 });
+
       const searchResults = await this.answerService.searchDocuments(
         projectId,
         question.content,
         10 // Get more results for better analysis
       );
 
+      debugLogger.info('Document search completed for question analysis', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'analyzeQuestion',
+        questionId: question.id,
+        projectId
+      }, { 
+        searchResultCount: searchResults.length,
+        searchResults: searchResults.map(r => ({
+          chunkId: r.chunk?.id,
+          documentId: r.chunk?.documentId,
+          score: r.score,
+          contentPreview: r.chunk?.content?.substring(0, 100) + '...'
+        }))
+      });
+
       if (searchResults.length === 0) {
+        logQuestionAnalysis('analyzeQuestion_no_results', question.id, projectId, {
+          questionContent: question.content
+        });
         return {
           questionId: question.id,
           answers: [],
@@ -47,15 +79,40 @@ export class QuestionAnalyzerService {
       }
 
       // Use OpenAI to analyze if the question is answered by the search results
+      debugLogger.debug('Starting OpenAI analysis', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'analyzeQuestion',
+        questionId: question.id,
+        projectId
+      });
+
       const answers = await this.analyzeWithOpenAI(question, searchResults);
 
-      return {
+      const result = {
         questionId: question.id,
         answers,
         isAnswered: answers.length > 0,
       };
+
+      logQuestionAnalysis('analyzeQuestion_completed', question.id, projectId, {
+        questionContent: question.content,
+        answerCount: answers.length,
+        isAnswered: result.isAnswered,
+        answers: answers.map(a => ({
+          id: a.id,
+          documentId: a.documentId,
+          contentPreview: a.content.substring(0, 100) + '...'
+        }))
+      });
+
+      return result;
     } catch (error) {
-      console.error("Error analyzing question:", error);
+      logError('QuestionAnalyzer', 'analyzeQuestion', error, {
+        component: 'QuestionAnalyzer',
+        operation: 'analyzeQuestion',
+        questionId: question.id,
+        projectId
+      });
       throw new Error(`Failed to analyze question: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -67,6 +124,15 @@ export class QuestionAnalyzerService {
     questions: Question[],
     projectId: string
   ): Promise<BulkAnalysisResult> {
+    debugLogger.info('Starting bulk question analysis', { 
+      component: 'QuestionAnalyzer', 
+      operation: 'analyzeQuestions',
+      projectId
+    }, { 
+      questionCount: questions.length,
+      questionIds: questions.map(q => q.id)
+    });
+
     const results: QuestionAnalysisResult[] = [];
     let answeredCount = 0;
     let unansweredCount = 0;
@@ -82,7 +148,12 @@ export class QuestionAnalyzerService {
           unansweredCount++;
         }
       } catch (error) {
-        console.error(`Error analyzing question ${question.id}:`, error);
+        logError('QuestionAnalyzer', 'analyzeQuestions', error, {
+          component: 'QuestionAnalyzer',
+          operation: 'analyzeQuestions',
+          questionId: question.id,
+          projectId
+        });
         // Add a failed result
         results.push({
           questionId: question.id,
@@ -93,12 +164,25 @@ export class QuestionAnalyzerService {
       }
     }
 
-    return {
+    const bulkResult = {
       results,
       totalAnalyzed: questions.length,
       answeredCount,
       unansweredCount,
     };
+
+    debugLogger.info('Bulk question analysis completed', { 
+      component: 'QuestionAnalyzer', 
+      operation: 'analyzeQuestions',
+      projectId
+    }, {
+      totalAnalyzed: bulkResult.totalAnalyzed,
+      answeredCount: bulkResult.answeredCount,
+      unansweredCount: bulkResult.unansweredCount,
+      successRate: `${Math.round((bulkResult.answeredCount / bulkResult.totalAnalyzed) * 100)}%`
+    });
+
+    return bulkResult;
   }
 
   /**
@@ -108,12 +192,23 @@ export class QuestionAnalyzerService {
     question: Question,
     searchResults: any[]
   ): Promise<QuestionAnswer[]> {
+    debugLogger.debug('Starting OpenAI analysis', { 
+      component: 'QuestionAnalyzer', 
+      operation: 'analyzeWithOpenAI',
+      questionId: question.id
+    }, {
+      searchResultCount: searchResults.length,
+      questionContent: question.content
+    });
+
     try {
       const systemPrompt = `You are an expert at analyzing whether document chunks contain answers to specific questions.
 
 Your task is to analyze the provided question and document chunks to determine which chunks (if any) contain answers to the question.
 
 For each chunk that contains an answer, you should extract the relevant content that answers the question.
+
+IMPORTANT: Return ONLY valid JSON. Do not wrap your response in markdown code blocks or any other formatting.
 
 Return your response as a JSON array of objects with the following structure:
 [
@@ -129,19 +224,32 @@ Guidelines:
 - Only include chunks that directly answer the question or provide relevant information
 - Extract the most relevant portion of the chunk content
 - Be precise and concise in your extracted content
-- If a chunk only partially answers the question, still include it but extract only the relevant part`;
+- If a chunk only partially answers the question, still include it but extract only the relevant part
+- Return ONLY the JSON array, no additional text or formatting`;
 
       const userPrompt = `Question: "${question.content}"
 
 Document chunks to analyze:
 ${searchResults.map((result, index) => `
 Chunk ${index + 1}:
-Document ID: ${result.documentId}
-Content: ${result.content}
+Document ID: ${result.chunk?.documentId || result.documentId}
+Content: ${result.chunk?.content || result.content}
 Relevance Score: ${result.score}
 `).join('\n')}
 
 Please analyze these chunks and return the JSON array of answers as specified.`;
+
+      debugLogger.debug('Sending request to OpenAI', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'analyzeWithOpenAI',
+        questionId: question.id
+      }, {
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        maxTokens: 2000,
+        promptLength: userPrompt.length,
+        systemPromptLength: systemPrompt.length
+      });
 
       const response = await openaiService.prompt(userPrompt, {
         model: "gpt-4o-mini",
@@ -150,13 +258,68 @@ Please analyze these chunks and return the JSON array of answers as specified.`;
         maxTokens: 2000
       });
 
+      debugLogger.debug('OpenAI response received', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'analyzeWithOpenAI',
+        questionId: question.id
+      }, {
+        success: response.success,
+        hasData: !!response.data,
+        error: response.error,
+        responseLength: response.data?.length || 0
+      });
+
       if (!response.success || !response.data) {
+        logError('QuestionAnalyzer', 'analyzeWithOpenAI', response.error, {
+          component: 'QuestionAnalyzer',
+          operation: 'analyzeWithOpenAI',
+          questionId: question.id
+        });
         throw new Error(response.error || "No response from OpenAI");
       }
 
       // Parse the JSON response
-      const parsedResponse = JSON.parse(response.data);
+      let parsedResponse;
+      try {
+        // Clean the response data to handle markdown code blocks
+        let cleanedResponse = response.data.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanedResponse.startsWith('```json')) {
+          cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedResponse.startsWith('```')) {
+          cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        parsedResponse = JSON.parse(cleanedResponse);
+        debugLogger.debug('OpenAI response parsed successfully', { 
+          component: 'QuestionAnalyzer', 
+          operation: 'analyzeWithOpenAI',
+          questionId: question.id
+        }, { parsedResponse });
+      } catch (parseError) {
+        logError('QuestionAnalyzer', 'analyzeWithOpenAI', parseError, {
+          component: 'QuestionAnalyzer',
+          operation: 'analyzeWithOpenAI',
+          questionId: question.id,
+          rawResponse: response.data
+        });
+        throw new Error(`Failed to parse OpenAI response: ${parseError}`);
+      }
+
       const answers = Array.isArray(parsedResponse) ? parsedResponse : parsedResponse.answers || [];
+
+      debugLogger.info('OpenAI analysis completed', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'analyzeWithOpenAI',
+        questionId: question.id
+      }, {
+        answerCount: answers.length,
+        answers: answers.map((a: any) => ({
+          documentId: a.documentId,
+          contentPreview: a.content?.substring(0, 100) + '...'
+        }))
+      });
 
       // Convert to QuestionAnswer format
       return answers.map((answer: any) => ({
@@ -169,7 +332,11 @@ Please analyze these chunks and return the JSON array of answers as specified.`;
       }));
 
     } catch (error) {
-      console.error("Error in OpenAI analysis:", error);
+      logError('QuestionAnalyzer', 'analyzeWithOpenAI', error, {
+        component: 'QuestionAnalyzer',
+        operation: 'analyzeWithOpenAI',
+        questionId: question.id
+      });
       throw new Error(`OpenAI analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -178,15 +345,40 @@ Please analyze these chunks and return the JSON array of answers as specified.`;
    * Checks if a question has any answers (without full analysis)
    */
   async hasAnswers(question: Question, projectId: string): Promise<boolean> {
+    debugLogger.debug('Checking if question has answers', { 
+      component: 'QuestionAnalyzer', 
+      operation: 'hasAnswers',
+      questionId: question.id,
+      projectId
+    }, { questionContent: question.content });
+
     try {
       const searchResults = await this.answerService.searchDocuments(
         projectId,
         question.content,
         5
       );
-      return searchResults.length > 0;
+      
+      const hasAnswers = searchResults.length > 0;
+      
+      debugLogger.info('Question answer check completed', { 
+        component: 'QuestionAnalyzer', 
+        operation: 'hasAnswers',
+        questionId: question.id,
+        projectId
+      }, { 
+        hasAnswers,
+        searchResultCount: searchResults.length
+      });
+      
+      return hasAnswers;
     } catch (error) {
-      console.error("Error checking if question has answers:", error);
+      logError('QuestionAnalyzer', 'hasAnswers', error, {
+        component: 'QuestionAnalyzer',
+        operation: 'hasAnswers',
+        questionId: question.id,
+        projectId
+      });
       return false;
     }
   }

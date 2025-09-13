@@ -1,9 +1,12 @@
 import { LocalStorageService } from "./storage";
 import { BaseEntity, Document } from "./types";
 import { ProjectRag, connect, SearchResult as RagSearchResult } from "./rag";
+import { debugLogger, logDocumentOperation, logError } from "./debug";
 
 export interface Answer extends BaseEntity {
-
+    questionId: string;
+    content: string;
+    documentId: string;
 }
 
 export interface AnswerDocuments extends BaseEntity {
@@ -39,52 +42,141 @@ export class AnswerService {
     }
 
     async uploadAnswerDocument(projectId: string, doc: Document): Promise<void> {
+        logDocumentOperation('uploadAnswerDocument_start', doc.id, projectId, {
+            contentLength: doc.rawText.length
+        });
+
         try {
             // Store in local storage for tracking
             const storage = this.getStorage(projectId);
+            debugLogger.debug('Storing document in local storage', { 
+                component: 'AnswerService', 
+                operation: 'uploadAnswerDocument',
+                projectId,
+                documentId: doc.id
+            });
+
             await storage.create({ documentId: doc.id });
 
             // Use RAG service for indexing
+            debugLogger.debug('Getting RAG instance for indexing', { 
+                component: 'AnswerService', 
+                operation: 'uploadAnswerDocument',
+                projectId,
+                documentId: doc.id
+            });
+
             const rag = await this.getRag(projectId);
             await rag.indexAnswer(doc);
 
-            console.log('Document indexed successfully');
+            logDocumentOperation('uploadAnswerDocument_success', doc.id, projectId, {
+                contentLength: doc.rawText.length
+            });
         } catch (error) {
-            console.error('Error uploading answer document:', error);
+            logError('AnswerService', 'uploadAnswerDocument', error, {
+                component: 'AnswerService',
+                operation: 'uploadAnswerDocument',
+                projectId,
+                documentId: doc.id
+            });
             throw error;
         }
     }
 
     async searchDocuments(projectId: string, query: string, limit: number = 5): Promise<SearchResult[]> {
+        debugLogger.info('Starting document search', { 
+            component: 'AnswerService', 
+            operation: 'searchDocuments',
+            projectId
+        }, { query, limit });
+
         try {
             const rag = await this.getRag(projectId);
-            return await rag.search(query, limit);
+            const results = await rag.search(query, limit);
+            
+            debugLogger.info('Document search completed', { 
+                component: 'AnswerService', 
+                operation: 'searchDocuments',
+                projectId
+            }, { 
+                query,
+                resultCount: results.length,
+                results: results.map(r => ({
+                    chunkId: r.chunk?.id,
+                    documentId: r.chunk?.documentId,
+                    score: r.score
+                }))
+            });
+
+            return results;
         } catch (error) {
-            console.error('Error searching documents:', error);
+            logError('AnswerService', 'searchDocuments', error, {
+                component: 'AnswerService',
+                operation: 'searchDocuments',
+                projectId
+            });
             throw error;
         }
     }
 
     async checkServerHealth(): Promise<boolean> {
+        debugLogger.debug('Checking server health via AnswerService', { 
+            component: 'AnswerService', 
+            operation: 'checkServerHealth'
+        });
+
         try {
             const rag = await this.getRag('health-check');
-            return await rag.checkServerHealth();
+            const isHealthy = await rag.checkServerHealth();
+            
+            debugLogger.info('Server health check completed via AnswerService', { 
+                component: 'AnswerService', 
+                operation: 'checkServerHealth'
+            }, { isHealthy });
+            
+            return isHealthy;
         } catch (error) {
-            console.error('Server health check failed:', error);
+            logError('AnswerService', 'checkServerHealth', error, {
+                component: 'AnswerService',
+                operation: 'checkServerHealth'
+            });
             return false;
         }
     }
 
     async getIndexedDocumentIds(projectId: string): Promise<string[]> {
+        debugLogger.debug('Getting indexed document IDs', { 
+            component: 'AnswerService', 
+            operation: 'getIndexedDocumentIds',
+            projectId
+        });
+
         try {
             const storage = this.getStorage(projectId);
             const result = await storage.getAll();
+            
             if (result.success && result.data) {
-                return result.data.map(answerDoc => answerDoc.documentId);
+                const documentIds = result.data.map(answerDoc => answerDoc.documentId);
+                debugLogger.info('Retrieved indexed document IDs', { 
+                    component: 'AnswerService', 
+                    operation: 'getIndexedDocumentIds',
+                    projectId
+                }, { documentCount: documentIds.length, documentIds });
+                return documentIds;
             }
+            
+            debugLogger.warn('No indexed documents found', { 
+                component: 'AnswerService', 
+                operation: 'getIndexedDocumentIds',
+                projectId
+            });
             return [];
         } catch (error) {
-            console.error('Error getting indexed document IDs:', error);
+            logError('AnswerService', 'getIndexedDocumentIds', error, {
+                component: 'AnswerService',
+                operation: 'getIndexedDocumentIds',
+                projectId
+            });
             return [];
         }
     }
