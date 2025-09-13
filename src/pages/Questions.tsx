@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Upload, File, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Search, Filter, Upload, File, Trash2, AlertTriangle, Brain, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -16,10 +16,11 @@ import { QuestionForm } from "@/components/QuestionForm";
 import { QuestionList } from "@/components/QuestionList";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentList } from "@/components/DocumentList";
-import { Question, QuestionCategory, Stakeholder } from "@/lib/services/question";
+import { Question, QuestionCategory, Stakeholder } from "@/lib/services/question/types";
 import { useActiveProject, useProjects } from "@/hooks/useStorage";
 import { useQuestionService } from "@/hooks/useQuestionService";
 import { useDocumentService } from "@/hooks/useDocumentService";
+import { useQuestionAnalyzer } from "@/hooks/useQuestionAnalyzer";
 import { useUserContext } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,6 +30,7 @@ export default function Questions() {
   const [stakeholderFilter, setStakeholderFilter] = useState<Stakeholder | "all">("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("questions");
+  const [questionStatusTab, setQuestionStatusTab] = useState("all");
   
   const { activeProject, setActive } = useActiveProject();
   const { data: projects, create: createProject } = useProjects();
@@ -43,6 +45,14 @@ export default function Questions() {
     loading,
     error
   } = useQuestionService();
+  
+  const {
+    analyzing,
+    analyzeQuestion,
+    analyzeQuestions,
+    isQuestionAnswered,
+    getQuestionAnswers
+  } = useQuestionAnalyzer();
   
   const {
     documents,
@@ -68,12 +78,24 @@ export default function Questions() {
   const documentStats = getDocumentStats();
 
   // Use the service to filter questions
-  const filteredQuestions = getQuestions({
+  const allFilteredQuestions = getQuestions({
     projectId: activeProject?.id, // If no project selected, show all questions
     category: categoryFilter === "all" ? undefined : categoryFilter,
     stakeholder: stakeholderFilter === "all" ? undefined : stakeholderFilter,
     searchTerm: searchTerm || undefined,
   });
+
+  // Filter questions by answered/unanswered status
+  const filteredQuestions = allFilteredQuestions.filter(question => {
+    if (questionStatusTab === "all") return true;
+    if (questionStatusTab === "answered") return isQuestionAnswered(question.id);
+    if (questionStatusTab === "unanswered") return !isQuestionAnswered(question.id);
+    return true;
+  });
+
+  // Get counts for statistics
+  const answeredQuestions = allFilteredQuestions.filter(q => isQuestionAnswered(q.id));
+  const unansweredQuestions = allFilteredQuestions.filter(q => !isQuestionAnswered(q.id));
   
 
   const handleCreateQuestion = async (newQuestion: Omit<Question, "id" | "createdAt" | "updatedAt">) => {
@@ -194,6 +216,66 @@ export default function Questions() {
     }
   };
 
+  const handleAnalyzeQuestion = async (question: Question) => {
+    if (!activeProject?.id) {
+      toast({
+        title: "Error",
+        description: "No project selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await analyzeQuestion(question, activeProject.id);
+      toast({
+        title: "Analysis Complete",
+        description: result.isAnswered 
+          ? `Found ${result.answers.length} answer(s) for this question`
+          : "No answers found for this question",
+      });
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAnalyzeAllUnanswered = async () => {
+    if (!activeProject?.id) {
+      toast({
+        title: "Error",
+        description: "No project selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (unansweredQuestions.length === 0) {
+      toast({
+        title: "No Questions to Analyze",
+        description: "All questions have already been analyzed",
+      });
+      return;
+    }
+
+    try {
+      const result = await analyzeQuestions(unansweredQuestions, activeProject.id);
+      toast({
+        title: "Bulk Analysis Complete",
+        description: `Analyzed ${result.totalAnalyzed} questions. Found answers for ${result.answeredCount} questions.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Bulk Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze questions",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -215,6 +297,23 @@ export default function Questions() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {/* Analyze All Unanswered Button */}
+                {activeProject && unansweredQuestions.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleAnalyzeAllUnanswered}
+                    disabled={analyzing}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    {analyzing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Brain className="h-4 w-4 mr-2" />
+                    )}
+                    Analyze All Unanswered ({unansweredQuestions.length})
+                  </Button>
+                )}
+
                 {/* Delete All Questions Button */}
                 {activeProject && stats.total > 0 && (
                   <AlertDialog>
@@ -279,7 +378,7 @@ export default function Questions() {
 
             {/* Statistics */}
             {activeProject && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <Card className="shadow-subtle">
                   <CardContent className="p-4">
                     <div className="text-2xl font-bold">{stats.total}</div>
@@ -288,10 +387,14 @@ export default function Questions() {
                 </Card>
                 <Card className="shadow-subtle">
                   <CardContent className="p-4">
-                    <div className="text-2xl font-bold">
-                      {Object.keys(stats.byCategory).filter(cat => stats.byCategory[cat as QuestionCategory] > 0).length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Categories Used</p>
+                    <div className="text-2xl font-bold text-green-600">{answeredQuestions.length}</div>
+                    <p className="text-sm text-muted-foreground">Answered</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-subtle">
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-orange-600">{unansweredQuestions.length}</div>
+                    <p className="text-sm text-muted-foreground">Unanswered</p>
                   </CardContent>
                 </Card>
                 <Card className="shadow-subtle">
@@ -377,18 +480,45 @@ export default function Questions() {
                   </CardContent>
                 </Card>
 
-                {/* Questions List */}
-                {!activeProject && (
-                  <Card className="mb-4 border-yellow-200 bg-yellow-50">
-                    <CardContent className="p-4">
-                      <p className="text-yellow-800 text-sm">
-                        <strong>Warning:</strong> No project selected. Showing all questions. 
-                        Select a project to see project-specific questions.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-                <QuestionList questions={filteredQuestions} />
+                {/* Question Status Tabs */}
+                <Tabs value={questionStatusTab} onValueChange={setQuestionStatusTab}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="all" className="flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      All Questions ({allFilteredQuestions.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="answered" className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Answered ({answeredQuestions.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="unanswered" className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4" />
+                      Unanswered ({unansweredQuestions.length})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="all" className="space-y-4">
+                    {!activeProject && (
+                      <Card className="mb-4 border-yellow-200 bg-yellow-50">
+                        <CardContent className="p-4">
+                          <p className="text-yellow-800 text-sm">
+                            <strong>Warning:</strong> No project selected. Showing all questions. 
+                            Select a project to see project-specific questions.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    <QuestionList questions={filteredQuestions} onAnalyzeQuestion={handleAnalyzeQuestion} analyzing={analyzing} />
+                  </TabsContent>
+
+                  <TabsContent value="answered" className="space-y-4">
+                    <QuestionList questions={filteredQuestions} onAnalyzeQuestion={handleAnalyzeQuestion} analyzing={analyzing} />
+                  </TabsContent>
+
+                  <TabsContent value="unanswered" className="space-y-4">
+                    <QuestionList questions={filteredQuestions} onAnalyzeQuestion={handleAnalyzeQuestion} analyzing={analyzing} />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               <TabsContent value="documents" className="space-y-6">

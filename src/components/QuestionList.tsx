@@ -1,26 +1,35 @@
 import React from "react";
-import { MessageSquare, Trash2, AlertTriangle } from "lucide-react";
+import { MessageSquare, Trash2, AlertTriangle, Brain, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Question } from "@/lib/types";
+import { Question } from "@/lib/services/question/types";
 import { useQuestionService } from "@/hooks/useQuestionService";
+import { useQuestionAnalyzer } from "@/hooks/useQuestionAnalyzer";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface QuestionListProps {
   questions: Question[];
+  onAnalyzeQuestion?: (question: Question) => void;
+  analyzing?: boolean;
 }
 
 interface QuestionItemProps {
   question: Question;
   onDeleteQuestion: (questionId: string) => void;
+  onAnalyzeQuestion?: (question: Question) => void;
+  analyzing?: boolean;
 }
 
-function QuestionItem({ question, onDeleteQuestion }: QuestionItemProps) {
+function QuestionItem({ question, onDeleteQuestion, onAnalyzeQuestion, analyzing }: QuestionItemProps) {
   const { deleteQuestion } = useQuestionService();
+  const { isQuestionAnswered, getQuestionAnswers } = useQuestionAnalyzer();
   const { toast } = useToast();
+  
+  const isAnswered = isQuestionAnswered(question.id);
+  const answers = getQuestionAnswers(question.id);
 
   const handleDelete = async () => {
     try {
@@ -47,6 +56,17 @@ function QuestionItem({ question, onDeleteQuestion }: QuestionItemProps) {
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="secondary">{question.category}</Badge>
               <Badge variant="outline">{question.stakeholder}</Badge>
+              {isAnswered ? (
+                <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Answered ({answers.length})
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-orange-600 border-orange-200">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Unanswered
+                </Badge>
+              )}
             </div>
             <CardTitle className="text-lg leading-relaxed">
               {question.content}
@@ -56,6 +76,23 @@ function QuestionItem({ question, onDeleteQuestion }: QuestionItemProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Analyze Button - only show for unanswered questions */}
+            {!isAnswered && onAnalyzeQuestion && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onAnalyzeQuestion(question)}
+                disabled={analyzing}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                {analyzing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Brain className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+            
             {/* Delete Button */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -91,7 +128,7 @@ function QuestionItem({ question, onDeleteQuestion }: QuestionItemProps) {
   );
 }
 
-export function QuestionList({ questions }: QuestionListProps) {
+export function QuestionList({ questions, onAnalyzeQuestion, analyzing }: QuestionListProps) {
   const handleDeleteQuestion = (questionId: string) => {
     // This is just a callback for UI updates if needed
     // The actual deletion is handled in the QuestionItem component
@@ -119,6 +156,8 @@ export function QuestionList({ questions }: QuestionListProps) {
           key={question.id}
           question={question}
           onDeleteQuestion={handleDeleteQuestion}
+          onAnalyzeQuestion={onAnalyzeQuestion}
+          analyzing={analyzing}
         />
       ))}
     </div>

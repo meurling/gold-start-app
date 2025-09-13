@@ -31,6 +31,13 @@ export interface Document extends BaseEntity {
 // Legacy alias for backward compatibility
 export type QuestionDocument = Document;
 
+// QuestionAnswer interface for storing answers to questions
+export interface QuestionAnswer extends BaseEntity {
+  questionId: string;
+  content: string;
+  documentId: string; // The document that contains this answer
+}
+
 
 // Generic storage interface
 export interface StorageData<T> {
