@@ -5,15 +5,44 @@ export interface BaseEntity {
   updatedAt: Date;
 }
 
-// Question interface
+// Question interface with recursive structure
 export interface Question extends BaseEntity {
-  title: string;
   content: string;
-  tags: string[];
-  isResolved: boolean;
-  authorId: string;
-  upvotes: number;
-  downvotes: number;
+  category: QuestionCategory;
+  stakeholder: Stakeholder;
+  parentQuestionId?: string;
+  rootQuestionId?: string;
+  userId: string;
+  projectId: string;
+}
+
+// Question categories
+export enum QuestionCategory {
+  SUSTAINABILITY = 'Sustainability',
+  CORPORATE_LEGAL = 'Corporate Legal',
+  FINANCE = 'Finance',
+  OPERATIONS = 'Operations',
+  TECHNOLOGY = 'Technology',
+  HUMAN_RESOURCES = 'Human Resources',
+  MARKETING = 'Marketing',
+  COMPLIANCE = 'Compliance',
+  RISK_MANAGEMENT = 'Risk Management',
+  OTHER = 'Other'
+}
+
+// Stakeholder types
+export enum Stakeholder {
+  LEGAL = 'Legal',
+  IT = 'IT',
+  FINANCE = 'Finance',
+  OPERATIONS = 'Operations',
+  HR = 'HR',
+  MARKETING = 'Marketing',
+  COMPLIANCE = 'Compliance',
+  EXECUTIVE = 'Executive',
+  BOARD = 'Board',
+  EXTERNAL = 'External',
+  OTHER = 'Other'
 }
 
 // Answer interface
@@ -50,6 +79,15 @@ export enum StorageKeys {
   SETTINGS = 'settings',
   PROJECTS = 'projects',
   ACTIVE_PROJECT = 'activeProject',
+}
+
+// Form types for creating questions
+export interface CreateQuestionForm {
+  content: string;
+  category: QuestionCategory;
+  stakeholder: Stakeholder;
+  parentQuestionId?: string;
+  rootQuestionId?: string;
 }
 
 // Generic storage interface

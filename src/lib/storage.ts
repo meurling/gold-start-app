@@ -107,7 +107,7 @@ export class LocalStorageService<T extends BaseEntity> {
 
       const updatedData = [...(result.data || []), newItem];
       await this.saveAll(updatedData);
-
+      console.log('newItem', newItem);
       return { success: true, data: newItem };
     } catch (error) {
       return {
