@@ -74,4 +74,18 @@ export class AnswerService {
             return false;
         }
     }
+
+    async getIndexedDocumentIds(projectId: string): Promise<string[]> {
+        try {
+            const storage = this.getStorage(projectId);
+            const result = await storage.getAll();
+            if (result.success && result.data) {
+                return result.data.map(answerDoc => answerDoc.documentId);
+            }
+            return [];
+        } catch (error) {
+            console.error('Error getting indexed document IDs:', error);
+            return [];
+        }
+    }
 }

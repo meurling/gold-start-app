@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -6,12 +6,13 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserContext } from "@/contexts/UserContext";
 import { useActiveProject } from "@/hooks/useStorage";
 import { documentService } from "@/lib/services/document";
 import { AnswerService } from "@/lib/answer";
+import { Document } from "@/lib/types";
 
 const answerService = new AnswerService();
 
@@ -19,10 +20,36 @@ export default function Answers() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [previousDocuments, setPreviousDocuments] = useState<Document[]>([]);
+  const [indexedDocumentIds, setIndexedDocumentIds] = useState<Set<string>>(new Set());
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { currentUser } = useUserContext();
   const { activeProject } = useActiveProject();
+
+  const loadPreviousDocuments = async () => {
+    if (!activeProject) return;
+
+    setIsLoadingDocuments(true);
+    try {
+      const [documents, indexedIds] = await Promise.all([
+        documentService.getDocumentsByProject(activeProject.id),
+        answerService.getIndexedDocumentIds(activeProject.id)
+      ]);
+
+      setPreviousDocuments(documents);
+      setIndexedDocumentIds(new Set(indexedIds));
+    } catch (error) {
+      console.error('Error loading previous documents:', error);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPreviousDocuments();
+  }, [activeProject]);
 
   const handleUpload = async (files: File[]) => {
     if (!currentUser || !activeProject) {
@@ -53,6 +80,7 @@ export default function Answers() {
       }
 
       setUploadedFiles(uploadedFileNames);
+      await loadPreviousDocuments(); // Refresh the documents list
       toast({
         title: "Upload Successful",
         description: `${uploadedFileNames.length} document(s) uploaded and indexed successfully.`,
@@ -118,6 +146,60 @@ export default function Answers() {
                   <p className="text-body-sm text-muted-foreground">
                     {activeProject.description || 'No description provided'}
                   </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeProject && previousDocuments.length > 0 && (
+              <Card className="mb-6 max-w-4xl">
+                <CardHeader>
+                  <CardTitle className="text-h3 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Previously Uploaded Documents ({previousDocuments.filter(doc => indexedDocumentIds.has(doc.id)).length} indexed, {previousDocuments.length} total)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingDocuments ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-muted-foreground">Loading documents...</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {previousDocuments.map((document) => {
+                        const isIndexed = indexedDocumentIds.has(document.id);
+                        return (
+                          <div
+                            key={document.id}
+                            className={`flex items-center justify-between p-3 border rounded-lg ${
+                              isIndexed ? 'bg-green-50/50 border-green-200' : 'bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <div className="font-medium text-sm">{document.fileName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {document.documentType} • Uploaded {new Date(document.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isIndexed ? (
+                                <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Indexed
+                                </span>
+                              ) : (
+                                <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded">
+                                  Not Indexed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
