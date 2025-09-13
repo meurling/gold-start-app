@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Questions from "./pages/Questions";
 import Answers from "./pages/Answers";
 import NotFound from "./pages/NotFound";
+import { DebugPanel } from "./components/DebugPanel";
+
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,7 @@ const AppContent = () => {
 
   return (
     <>
+      <DebugPanel />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
