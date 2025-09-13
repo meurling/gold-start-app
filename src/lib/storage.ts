@@ -67,7 +67,10 @@ export class LocalStorageService<T extends BaseEntity> {
     try {
       const result = await this.getAll();
       if (!result.success || !result.data) {
-        return result;
+        return {
+          success: false,
+          error: result.error
+        };
       }
 
       const item = result.data.find(item => item.id === id);
@@ -89,7 +92,10 @@ export class LocalStorageService<T extends BaseEntity> {
     try {
       const result = await this.getAll();
       if (!result.success) {
-        return result;
+        return {
+          success: false,
+          error: result.error
+        };
       }
 
       const newItem: T = {
@@ -120,7 +126,10 @@ export class LocalStorageService<T extends BaseEntity> {
     try {
       const result = await this.getAll();
       if (!result.success || !result.data) {
-        return result;
+        return {
+          success: false,
+          error: result.error
+        };
       }
 
       const index = result.data.findIndex(item => item.id === id);
@@ -162,7 +171,10 @@ export class LocalStorageService<T extends BaseEntity> {
     try {
       const result = await this.getAll();
       if (!result.success || !result.data) {
-        return result;
+        return {
+          success: false,
+          error: result.error
+        };
       }
 
       const filteredData = result.data.filter(item => item.id !== id);
@@ -195,16 +207,19 @@ export class LocalStorageService<T extends BaseEntity> {
     try {
       const result = await this.getAll();
       if (!result.success || !result.data) {
-        return result;
+        return {
+          success: false,
+          error: result.error
+        };
       }
 
-      let data = [...result.data];
+      const data = [...result.data];
 
       // Sort data
       if (options.sortBy) {
         data.sort((a, b) => {
-          const aVal = (a as any)[options.sortBy!];
-          const bVal = (b as any)[options.sortBy!];
+          const aVal = (a as Record<string, unknown>)[options.sortBy!];
+          const bVal = (b as Record<string, unknown>)[options.sortBy!];
           
           if (aVal < bVal) return options.sortOrder === 'desc' ? 1 : -1;
           if (aVal > bVal) return options.sortOrder === 'desc' ? -1 : 1;
