@@ -66,9 +66,6 @@ function QuestionItem({ question, allQuestions, onAddSubQuestion, onDeleteQuesti
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="secondary">{question.category}</Badge>
               <Badge variant="outline">{question.stakeholder}</Badge>
-              {isRootQuestion && (
-                <Badge variant="default">Root Question</Badge>
-              )}
             </div>
             <CardTitle className="text-lg leading-relaxed">
               {question.content}
