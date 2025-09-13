@@ -17,8 +17,6 @@ export function useQuestionService() {
       content: request.content,
       category: request.category,
       stakeholder: request.stakeholder,
-      parentQuestionId: request.parentQuestionId,
-      rootQuestionId: request.rootQuestionId,
       userId: request.userId,
       projectId: request.projectId,
     });
@@ -43,16 +41,11 @@ export function useQuestionService() {
 
   // Check if question can be deleted
   const canDeleteQuestion = useCallback((questionId: string) => {
-    if (!questions) return false;
-    return !questions.some(q => q.parentQuestionId === questionId);
-  }, [questions]);
+    return true; // All questions can be deleted now
+  }, []);
 
   // Delete question
   const deleteQuestion = useCallback(async (id: string) => {
-    if (!canDeleteQuestion(id)) {
-      throw new Error('Cannot delete question with sub-questions');
-    }
-
     const result = await remove(id);
     
     if (!result.success) {
@@ -60,7 +53,7 @@ export function useQuestionService() {
     }
 
     return true;
-  }, [remove, canDeleteQuestion]);
+  }, [remove]);
 
   // Get questions with filters - simplified approach
   const getQuestions = useCallback((filters: QuestionFilters = {}) => {
@@ -83,13 +76,6 @@ export function useQuestionService() {
       filtered = filtered.filter(q => q.stakeholder === filters.stakeholder);
     }
     
-    if (filters.parentQuestionId !== undefined) {
-      if (filters.parentQuestionId === null) {
-        filtered = filtered.filter(q => !q.parentQuestionId);
-      } else {
-        filtered = filtered.filter(q => q.parentQuestionId === filters.parentQuestionId);
-      }
-    }
     
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
@@ -106,38 +92,6 @@ export function useQuestionService() {
     return questions?.find(q => q.id === id);
   }, [questions]);
 
-  // Get root questions
-  const getRootQuestions = useCallback((projectId?: string) => {
-    if (!questions) return [];
-    return questions.filter(q => 
-      !q.parentQuestionId && 
-      (projectId ? q.projectId === projectId : true)
-    );
-  }, [questions]);
-
-  // Get sub-questions
-  const getSubQuestions = useCallback((parentId: string) => {
-    if (!questions) return [];
-    return questions.filter(q => q.parentQuestionId === parentId);
-  }, [questions]);
-
-  // Get question hierarchy
-  const getQuestionHierarchy = useCallback((rootId: string) => {
-    if (!questions) return [];
-    const root = questions.find(q => q.id === rootId);
-    if (!root) return [];
-    
-    const hierarchy = [root];
-    const addChildren = (parentId: string) => {
-      const children = questions.filter(q => q.parentQuestionId === parentId);
-      children.forEach(child => {
-        hierarchy.push(child);
-        addChildren(child.id);
-      });
-    };
-    addChildren(rootId);
-    return hierarchy;
-  }, [questions]);
 
   // Get questions by project
   const getQuestionsByProject = useCallback((projectId: string) => {
@@ -185,9 +139,7 @@ export function useQuestionService() {
       return {
         total: 0,
         byCategory: {},
-        byStakeholder: {},
-        rootQuestions: 0,
-        subQuestions: 0
+        byStakeholder: {}
       };
     }
     
@@ -198,9 +150,7 @@ export function useQuestionService() {
     const stats = {
       total: filteredQuestions.length,
       byCategory: {} as Record<string, number>,
-      byStakeholder: {} as Record<string, number>,
-      rootQuestions: 0,
-      subQuestions: 0
+      byStakeholder: {} as Record<string, number>
     };
     
     filteredQuestions.forEach(q => {
@@ -209,33 +159,11 @@ export function useQuestionService() {
       
       // Count by stakeholder
       stats.byStakeholder[q.stakeholder] = (stats.byStakeholder[q.stakeholder] || 0) + 1;
-      
-      // Count root vs sub questions
-      if (q.parentQuestionId) {
-        stats.subQuestions++;
-      } else {
-        stats.rootQuestions++;
-      }
     });
     
     return stats;
   }, [questions]);
 
-  // Get question path
-  const getQuestionPath = useCallback((questionId: string) => {
-    if (!questions) return [];
-    const path: Question[] = [];
-    let current = questions.find(q => q.id === questionId);
-    
-    while (current) {
-      path.unshift(current);
-      current = current.parentQuestionId 
-        ? questions.find(q => q.id === current.parentQuestionId)
-        : undefined;
-    }
-    
-    return path;
-  }, [questions]);
 
   // Delete all questions for a project
   const deleteAllQuestions = useCallback(async (projectId?: string) => {
@@ -244,14 +172,7 @@ export function useQuestionService() {
         ? getQuestionsByProject(projectId)
         : questions || [];
 
-      // Delete questions in reverse order (sub-questions first, then root questions)
-      const sortedQuestions = questionsToDelete.sort((a, b) => {
-        if (a.parentQuestionId && !b.parentQuestionId) return -1;
-        if (!a.parentQuestionId && b.parentQuestionId) return 1;
-        return 0;
-      });
-
-      for (const question of sortedQuestions) {
+      for (const question of questionsToDelete) {
         const result = await remove(question.id);
         if (!result.success) {
           throw new Error(`Failed to delete question: ${result.error?.message}`);
@@ -264,31 +185,6 @@ export function useQuestionService() {
     }
   }, [remove, getQuestionsByProject, questions]);
 
-  // Delete question with sub-questions (cascade delete)
-  const deleteQuestionWithSubQuestions = useCallback(async (questionId: string) => {
-    try {
-      const hierarchy = getQuestionHierarchy(questionId);
-      
-      // Delete in reverse order (sub-questions first, then root)
-      const sortedQuestions = hierarchy.sort((a, b) => {
-        if (a.parentQuestionId && !b.parentQuestionId) return -1;
-        if (!a.parentQuestionId && b.parentQuestionId) return 1;
-        return 0;
-      });
-
-      for (const question of sortedQuestions) {
-        const result = await remove(question.id);
-        if (!result.success) {
-          throw new Error(`Failed to delete question: ${result.error?.message}`);
-        }
-      }
-
-      return { success: true, deletedCount: hierarchy.length };
-    } catch (error) {
-      throw new Error(`Failed to delete question with sub-questions: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [remove, getQuestionHierarchy]);
-
   return {
     // Data
     questions: questions || [],
@@ -300,21 +196,16 @@ export function useQuestionService() {
     updateQuestion,
     deleteQuestion,
     deleteAllQuestions,
-    deleteQuestionWithSubQuestions,
     
     // Query methods
     getQuestions,
     getQuestionById,
-    getRootQuestions,
-    getSubQuestions,
-    getQuestionHierarchy,
     getQuestionsByProject,
     getQuestionsByUser,
     getQuestionsByCategory,
     getQuestionsByStakeholder,
     searchQuestions,
     getQuestionStats,
-    getQuestionPath,
     canDeleteQuestion,
   };
 }

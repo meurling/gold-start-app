@@ -48,15 +48,6 @@ export class QuestionService {
       filtered = filtered.filter(q => q.stakeholder === filters.stakeholder);
     }
 
-    if (filters.parentQuestionId !== undefined) {
-      if (filters.parentQuestionId === null) {
-        // Root questions only
-        filtered = filtered.filter(q => !q.parentQuestionId);
-      } else {
-        // Sub-questions of specific parent
-        filtered = filtered.filter(q => q.parentQuestionId === filters.parentQuestionId);
-      }
-    }
 
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
@@ -73,40 +64,6 @@ export class QuestionService {
     return this.questions.find(q => q.id === id);
   }
 
-  // Get root questions (questions without parent)
-  getRootQuestions(projectId?: string): Question[] {
-    const filters: QuestionFilters = { parentQuestionId: null };
-    if (projectId) {
-      filters.projectId = projectId;
-    }
-    return this.getQuestions(filters);
-  }
-
-  // Get sub-questions of a specific parent
-  getSubQuestions(parentId: string): Question[] {
-    return this.getQuestions({ parentQuestionId: parentId });
-  }
-
-  // Get question hierarchy (root question with all its sub-questions)
-  getQuestionHierarchy(rootId: string): Question[] {
-    const root = this.getQuestionById(rootId);
-    if (!root) return [];
-
-    const hierarchy: Question[] = [root];
-    const subQuestions = this.getSubQuestions(rootId);
-    
-    // Recursively get all sub-questions
-    const getAllSubQuestions = (parentId: string) => {
-      const subs = this.getSubQuestions(parentId);
-      subs.forEach(sub => {
-        hierarchy.push(sub);
-        getAllSubQuestions(sub.id);
-      });
-    };
-
-    getAllSubQuestions(rootId);
-    return hierarchy;
-  }
 
   // Get questions by project
   getQuestionsByProject(projectId: string): Question[] {
@@ -150,8 +107,6 @@ export class QuestionService {
     total: number;
     byCategory: Record<QuestionCategory, number>;
     byStakeholder: Record<Stakeholder, number>;
-    rootQuestions: number;
-    subQuestions: number;
   } {
     const questions = projectId ? this.getQuestionsByProject(projectId) : this.questions;
     
@@ -159,8 +114,6 @@ export class QuestionService {
       total: questions.length,
       byCategory: {} as Record<QuestionCategory, number>,
       byStakeholder: {} as Record<Stakeholder, number>,
-      rootQuestions: 0,
-      subQuestions: 0,
     };
 
     // Initialize counters
@@ -175,12 +128,6 @@ export class QuestionService {
     questions.forEach(question => {
       stats.byCategory[question.category]++;
       stats.byStakeholder[question.stakeholder]++;
-      
-      if (question.parentQuestionId) {
-        stats.subQuestions++;
-      } else {
-        stats.rootQuestions++;
-      }
     });
 
     return stats;
@@ -213,21 +160,6 @@ export class QuestionService {
       errors.push('Project ID is required');
     }
 
-    // Validate parent question exists if specified
-    if (data.parentQuestionId) {
-      const parentQuestion = this.getQuestionById(data.parentQuestionId);
-      if (!parentQuestion) {
-        errors.push('Parent question not found');
-      }
-    }
-
-    // Validate root question exists if specified
-    if (data.rootQuestionId) {
-      const rootQuestion = this.getQuestionById(data.rootQuestionId);
-      if (!rootQuestion) {
-        errors.push('Root question not found');
-      }
-    }
 
     return {
       isValid: errors.length === 0,
@@ -235,31 +167,9 @@ export class QuestionService {
     };
   }
 
-  // Check if question can be deleted (no sub-questions)
+  // Check if question can be deleted
   canDeleteQuestion(questionId: string): boolean {
-    const subQuestions = this.getSubQuestions(questionId);
-    return subQuestions.length === 0;
-  }
-
-  // Get question path (breadcrumb-like path from root to question)
-  getQuestionPath(questionId: string): Question[] {
-    const question = this.getQuestionById(questionId);
-    if (!question) return [];
-
-    const path: Question[] = [];
-    let current = question;
-
-    // Build path from current question to root
-    while (current) {
-      path.unshift(current);
-      if (current.parentQuestionId) {
-        current = this.getQuestionById(current.parentQuestionId);
-      } else {
-        break;
-      }
-    }
-
-    return path;
+    return true; // All questions can be deleted now
   }
 }
 

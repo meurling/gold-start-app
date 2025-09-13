@@ -130,8 +130,6 @@ const response = await weaviateService.createQuestion(question);
 - `content`: The question text (vectorized)
 - `category`: Question category (filterable)
 - `stakeholder`: Target stakeholder (filterable)
-- `parentQuestionId`: For hierarchical questions
-- `rootQuestionId`: Root question reference
 - `userId`: Creator user ID
 - `projectId`: Associated project
 

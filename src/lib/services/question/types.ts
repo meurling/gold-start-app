@@ -5,13 +5,11 @@ export interface BaseEntity {
   updatedAt: Date;
 }
 
-// Question interface with recursive structure
+// Question interface
 export interface Question extends BaseEntity {
   content: string;
   category: QuestionCategory;
   stakeholder: Stakeholder;
-  parentQuestionId?: string;
-  rootQuestionId?: string;
   userId: string;
   projectId: string;
 }
@@ -60,8 +58,6 @@ export interface CreateQuestionForm {
   content: string;
   category: QuestionCategory;
   stakeholder: Stakeholder;
-  parentQuestionId?: string;
-  rootQuestionId?: string;
 }
 
 // Question service request types
@@ -69,8 +65,6 @@ export interface CreateQuestionRequest {
   content: string;
   category: QuestionCategory;
   stakeholder: Stakeholder;
-  parentQuestionId?: string;
-  rootQuestionId?: string;
   userId: string;
   projectId: string;
 }
@@ -79,14 +73,11 @@ export interface UpdateQuestionRequest {
   content?: string;
   category?: QuestionCategory;
   stakeholder?: Stakeholder;
-  parentQuestionId?: string;
-  rootQuestionId?: string;
 }
 
 export interface QuestionFilters {
   projectId?: string;
   category?: QuestionCategory;
   stakeholder?: Stakeholder;
-  parentQuestionId?: string | null; // null for root questions only
   searchTerm?: string;
 }

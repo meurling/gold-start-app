@@ -9,30 +9,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { QuestionCategory, Stakeholder, CreateQuestionForm } from "@/lib/services/question";
 import { useActiveProject } from "@/hooks/useStorage";
 import { useUser } from "@/hooks/useUser";
-import { useQuestionService } from "@/hooks/useQuestionService";
 
 const questionSchema = z.object({
   content: z.string().min(10, "Question must be at least 10 characters long"),
   category: z.nativeEnum(QuestionCategory),
   stakeholder: z.nativeEnum(Stakeholder),
-  parentQuestionId: z.string().optional(),
-  rootQuestionId: z.string().optional(),
 });
 
 interface QuestionFormProps {
   onSubmit: (data: Omit<CreateQuestionForm, "userId" | "projectId"> & { userId: string; projectId: string }) => void;
-  parentQuestionId?: string;
-  rootQuestionId?: string;
 }
 
-export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: QuestionFormProps) {
-  const { getQuestions } = useQuestionService();
+export function QuestionForm({ onSubmit }: QuestionFormProps) {
   const { activeProject } = useActiveProject();
   const { currentUser } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Get all questions for parent/root selection
-  const questions = getQuestions();
 
   const form = useForm<CreateQuestionForm>({
     resolver: zodResolver(questionSchema),
@@ -40,8 +31,6 @@ export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: Que
       content: "",
       category: QuestionCategory.OTHER,
       stakeholder: Stakeholder.OTHER,
-      parentQuestionId: parentQuestionId || "",
-      rootQuestionId: rootQuestionId || "",
     },
   });
 
@@ -54,8 +43,6 @@ export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: Que
 
       onSubmit({
         ...data,
-        parentQuestionId: data.parentQuestionId === "none" ? undefined : data.parentQuestionId,
-        rootQuestionId: data.rootQuestionId === "none" ? undefined : data.rootQuestionId,
         userId: currentUser.id,
         projectId: activeProject.id,
       });
@@ -162,67 +149,6 @@ export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: Que
           />
         </div>
 
-        {questions && questions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="parentQuestionId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Parent Question (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a parent question" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No parent question</SelectItem>
-                      {questions.map((question) => (
-                        <SelectItem key={question.id} value={question.id}>
-                          {question.content.length > 50 
-                            ? `${question.content.substring(0, 50)}...` 
-                            : question.content}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="rootQuestionId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Root Question (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a root question" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No root question</SelectItem>
-                      {questions
-                        .filter(q => !q.parentQuestionId) // Only show root questions
-                        .map((question) => (
-                          <SelectItem key={question.id} value={question.id}>
-                            {question.content.length > 50 
-                              ? `${question.content.substring(0, 50)}...` 
-                              : question.content}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
 
         <div className="flex justify-end space-x-2">
           <Button type="submit" disabled={isSubmitting}>

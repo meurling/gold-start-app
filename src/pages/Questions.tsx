@@ -91,8 +91,6 @@ export default function Questions() {
         content: newQuestion.content,
         category: newQuestion.category,
         stakeholder: newQuestion.stakeholder,
-        parentQuestionId: newQuestion.parentQuestionId,
-        rootQuestionId: newQuestion.rootQuestionId,
         userId: newQuestion.userId,
         projectId: activeProject.id, // Always use the active project ID
       });
@@ -234,7 +232,7 @@ export default function Questions() {
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                           Are you sure you want to delete all {stats.total} questions in this project? 
-                          This action cannot be undone and will permanently remove all questions and their sub-questions.
+                          This action cannot be undone and will permanently remove all questions.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -281,23 +279,11 @@ export default function Questions() {
 
             {/* Statistics */}
             {activeProject && (
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="shadow-subtle">
                   <CardContent className="p-4">
                     <div className="text-2xl font-bold">{stats.total}</div>
                     <p className="text-sm text-muted-foreground">Total Questions</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold">{stats.rootQuestions}</div>
-                    <p className="text-sm text-muted-foreground">Root Questions</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-subtle">
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold">{stats.subQuestions}</div>
-                    <p className="text-sm text-muted-foreground">Sub-Questions</p>
                   </CardContent>
                 </Card>
                 <Card className="shadow-subtle">
