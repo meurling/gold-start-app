@@ -1,7 +1,8 @@
 import {
   HelpCircle,
   MessageSquare,
-  Upload
+  Upload,
+  FileText
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 import { ProjectSelector } from "./ProjectSelector"
@@ -20,9 +21,9 @@ import {
 } from "@/components/ui/sidebar"
 
 const navigationItems = [
-  { title: "Upload", url: "/upload", icon: Upload },
+  { title: "Documents", url: "/documents", icon: FileText },
   { title: "Questions", url: "/questions", icon: HelpCircle },
-  { title: "Answers", url: "/answers", icon: MessageSquare },
+  { title: "Answer", url: "/answers", icon: MessageSquare },
 ]
 
 export function AppSidebar() {
