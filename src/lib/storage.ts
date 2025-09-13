@@ -3,7 +3,7 @@ import {
   StorageData, 
   StorageResult, 
   StorageError, 
-  StorageKeys,
+  StorageKey,
   PaginationOptions,
   PaginatedResult
 } from './types';
@@ -16,7 +16,7 @@ export class LocalStorageService<T extends BaseEntity> {
   private key: string;
   private version: string;
 
-  constructor(key: StorageKeys, version: string = STORAGE_VERSION) {
+  constructor(key: StorageKey, version: string = STORAGE_VERSION) {
     this.key = key;
     this.version = version;
   }
@@ -289,6 +289,6 @@ export class LocalStorageService<T extends BaseEntity> {
 }
 
 // Factory function to create storage services
-export function createStorageService<T extends BaseEntity>(key: StorageKeys): LocalStorageService<T> {
+export function createStorageService<T extends BaseEntity>(key: StorageKey): LocalStorageService<T> {
   return new LocalStorageService<T>(key);
 }
