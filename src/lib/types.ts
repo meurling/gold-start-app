@@ -55,22 +55,13 @@ export interface Answer extends BaseEntity {
   downvotes: number;
 }
 
+export type StorageKey = string;
+
 // Project interface
 export interface Project extends BaseEntity {
   name: string;
   description?: string;
   isActive: boolean;
-}
-
-// Storage keys enum for type safety
-export enum StorageKeys {
-  QUESTIONS = 'questions',
-  ANSWERS = 'answers',
-  USERS = 'users',
-  CURRENT_USER = 'currentUser',
-  SETTINGS = 'settings',
-  PROJECTS = 'projects',
-  ACTIVE_PROJECT = 'activeProject',
 }
 
 // Form types for creating questions
