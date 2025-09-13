@@ -1,182 +1,197 @@
-# Question Service
+# Weaviate Vector Database Service
 
-A comprehensive service for managing questions with hierarchical structure, filtering, and statistics.
+This directory contains the Weaviate vector database integration for the application, providing semantic search capabilities for questions, answers, and projects.
 
-## Features
+## Files
 
-- **CRUD Operations**: Create, read, update, and delete questions
-- **Hierarchical Structure**: Support for parent-child relationships between questions
-- **Advanced Filtering**: Filter by project, category, stakeholder, search terms, etc.
-- **Statistics**: Get detailed statistics about questions
-- **Validation**: Built-in validation for question data
-- **Type Safety**: Full TypeScript support
+- `weaviateTypes.ts` - TypeScript interfaces and types for Weaviate operations
+- `weaviateService.ts` - Main service class for Weaviate operations
+- `weaviateConfig.ts` - Configuration settings for Weaviate connection
+- `useWeaviate.ts` - React hook for using Weaviate service in components
+
+## Setup
+
+### 1. Environment Variables
+
+Create a `.env` file in your project root with the following variables:
+
+```env
+# Weaviate Configuration
+VITE_WEAVIATE_URL=yarqfmhuskukffrbfy3sw.c0.europe-west3.gcp.weaviate.cloud
+VITE_WEAVIATE_API_KEY=your_weaviate_api_key_here
+
+# OpenAI Configuration (if using OpenAI vectorizer)
+VITE_OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### 2. Initialize Schemas
+
+Before using the service, you need to initialize the database schemas:
+
+```typescript
+import { useWeaviate } from '@/hooks/useWeaviate';
+
+const { initializeSchemas } = useWeaviate();
+
+// Initialize schemas (run once)
+await initializeSchemas();
+```
 
 ## Usage
 
-### Basic Usage with React Hook
+### Using the Hook
 
 ```typescript
-import { useQuestionService } from '@/hooks/useQuestionService';
+import { useWeaviate } from '@/hooks/useWeaviate';
 
 function MyComponent() {
   const {
-    questions,
+    isConnected,
+    isLoading,
+    error,
+    searchQuestions,
     createQuestion,
-    getQuestions,
-    getQuestionStats,
-    loading,
-    error
-  } = useQuestionService();
+    checkConnection
+  } = useWeaviate();
+
+  // Check connection status
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  // Search for questions
+  const handleSearch = async (query: string) => {
+    const results = await searchQuestions(query, 'project-id', 10);
+    console.log(results);
+  };
 
   // Create a new question
-  const handleCreate = async () => {
-    try {
-      await createQuestion({
-        content: "What are the main risks?",
-        category: QuestionCategory.RISK_MANAGEMENT,
-        stakeholder: Stakeholder.EXECUTIVE,
-        userId: "user-123",
-        projectId: "project-456"
-      });
-    } catch (error) {
-      console.error("Failed to create question:", error);
+  const handleCreateQuestion = async (question: Question) => {
+    const response = await createQuestion(question);
+    if (response.errors) {
+      console.error('Failed to create question:', response.errors);
     }
   };
 
-  // Get filtered questions
-  const filteredQuestions = getQuestions({
-    projectId: "project-456",
-    category: QuestionCategory.RISK_MANAGEMENT,
-    searchTerm: "risk"
-  });
-
-  // Get statistics
-  const stats = getQuestionStats("project-456");
-  console.log(`Total questions: ${stats.total}`);
-  console.log(`Root questions: ${stats.rootQuestions}`);
-  console.log(`Sub-questions: ${stats.subQuestions}`);
+  return (
+    <div>
+      {isConnected ? 'Connected to Weaviate' : 'Not connected'}
+      {error && <div>Error: {error}</div>}
+      {isLoading && <div>Loading...</div>}
+    </div>
+  );
 }
 ```
 
 ### Direct Service Usage
 
 ```typescript
-import { questionService } from '@/lib/services/questionService';
+import { weaviateService } from '@/lib/services/weaviateService';
 
-// Get all questions
-const allQuestions = questionService.getAllQuestions();
+// Check if service is ready
+const isReady = await weaviateService.isReady();
 
-// Get questions with filters
-const filteredQuestions = questionService.getQuestions({
-  projectId: "project-123",
-  category: QuestionCategory.SUSTAINABILITY,
-  stakeholder: Stakeholder.LEGAL,
-  searchTerm: "environmental"
-});
+// Search questions
+const results = await weaviateService.searchQuestions(
+  'sustainability questions',
+  'project-id',
+  10
+);
 
-// Get root questions only
-const rootQuestions = questionService.getRootQuestions("project-123");
-
-// Get sub-questions of a specific parent
-const subQuestions = questionService.getSubQuestions("parent-question-id");
-
-// Get question hierarchy (root + all sub-questions)
-const hierarchy = questionService.getQuestionHierarchy("root-question-id");
-
-// Get statistics
-const stats = questionService.getQuestionStats("project-123");
+// Create a question
+const response = await weaviateService.createQuestion(question);
 ```
 
-## API Reference
+## Features
 
-### QuestionService Methods
+### Semantic Search
+- Vector-based similarity search for questions, answers, and projects
+- Configurable certainty thresholds
+- Filtering by project, category, stakeholder, etc.
 
-#### Data Retrieval
-- `getAllQuestions()`: Get all questions
-- `getQuestions(filters)`: Get questions with filters
-- `getQuestionById(id)`: Get specific question by ID
-- `getRootQuestions(projectId?)`: Get root questions (no parent)
-- `getSubQuestions(parentId)`: Get sub-questions of a parent
-- `getQuestionHierarchy(rootId)`: Get complete hierarchy from root
-- `getQuestionsByProject(projectId)`: Get all questions for a project
-- `getQuestionsByUser(userId)`: Get all questions by a user
-- `getQuestionsByCategory(category, projectId?)`: Get questions by category
-- `getQuestionsByStakeholder(stakeholder, projectId?)`: Get questions by stakeholder
-- `searchQuestions(searchTerm, projectId?)`: Search questions by content
+### CRUD Operations
+- Create, read, update, delete operations for all entity types
+- Batch operations for efficient bulk inserts
+- Consistent error handling and response formatting
 
-#### Statistics
-- `getQuestionStats(projectId?)`: Get comprehensive statistics
+### Schema Management
+- Automatic schema creation for Questions, Answers, and Projects
+- Configurable vectorizers (OpenAI text2vec)
+- Optimized indexing for search and filtering
 
-#### Validation
-- `validateQuestion(data)`: Validate question data
-- `canDeleteQuestion(id)`: Check if question can be deleted
+### React Integration
+- Custom hook with loading states and error handling
+- Automatic connection checking
+- Type-safe operations with TypeScript
 
-#### Utilities
-- `getQuestionPath(id)`: Get breadcrumb path from root to question
+## Data Models
 
-### Filter Options
+### Question
+- `content`: The question text (vectorized)
+- `category`: Question category (filterable)
+- `stakeholder`: Target stakeholder (filterable)
+- `parentQuestionId`: For hierarchical questions
+- `rootQuestionId`: Root question reference
+- `userId`: Creator user ID
+- `projectId`: Associated project
+
+### Answer
+- `questionId`: Associated question ID
+- `content`: Answer text (vectorized)
+- `authorId`: Answer author
+- `isAccepted`: Acceptance status
+- `upvotes`/`downvotes`: Voting metrics
+
+### Project
+- `name`: Project name (vectorized)
+- `description`: Project description (vectorized)
+- `isActive`: Active status
+
+## Search Options
+
+The service supports various search methods:
+
+- **Near Text**: Semantic search using text queries
+- **Near Vector**: Search using vector embeddings
+- **Near Object**: Find similar objects
+- **BM25**: Keyword-based search
+- **Hybrid**: Combination of vector and keyword search
+- **Ask**: Question-answering with context
+
+## Error Handling
+
+All operations return a consistent response format:
 
 ```typescript
-interface QuestionFilters {
-  projectId?: string;
-  category?: QuestionCategory;
-  stakeholder?: Stakeholder;
-  parentQuestionId?: string | null; // null for root questions only
-  searchTerm?: string;
+interface WeaviateResponse<T> {
+  data?: T;
+  errors?: WeaviateError[];
+  meta?: WeaviateMeta;
 }
 ```
 
-### Statistics Object
+Errors are automatically handled by the React hook and displayed to users.
 
-```typescript
-interface QuestionStats {
-  total: number;
-  byCategory: Record<QuestionCategory, number>;
-  byStakeholder: Record<Stakeholder, number>;
-  rootQuestions: number;
-  subQuestions: number;
-}
-```
+## Performance Considerations
 
-## Examples
+- Use appropriate `limit` parameters for search operations
+- Consider using batch operations for bulk inserts
+- Monitor connection status and handle reconnection
+- Use filtering to reduce search scope when possible
 
-### Creating a Question with Parent
+## Troubleshooting
 
-```typescript
-await createQuestion({
-  content: "What are the specific environmental regulations?",
-  category: QuestionCategory.SUSTAINABILITY,
-  stakeholder: Stakeholder.LEGAL,
-  parentQuestionId: "parent-question-id",
-  rootQuestionId: "root-question-id",
-  userId: "user-123",
-  projectId: "project-456"
-});
-```
+### Connection Issues
+1. Verify your Weaviate URL and API key
+2. Check network connectivity
+3. Ensure Weaviate instance is running
 
-### Getting Questions for Dashboard
+### Schema Issues
+1. Run `initializeSchemas()` to create required schemas
+2. Check for schema conflicts
+3. Verify vectorizer configuration
 
-```typescript
-// Get recent questions for current project
-const recentQuestions = getQuestions({
-  projectId: activeProject.id,
-  // Add date filtering if needed
-});
-
-// Get questions by category for charts
-const riskQuestions = getQuestionsByCategory(QuestionCategory.RISK_MANAGEMENT, activeProject.id);
-const legalQuestions = getQuestionsByCategory(QuestionCategory.CORPORATE_LEGAL, activeProject.id);
-```
-
-### Building Question Tree
-
-```typescript
-// Get all root questions
-const rootQuestions = getRootQuestions(projectId);
-
-// For each root question, get its hierarchy
-const questionTrees = rootQuestions.map(root => ({
-  root,
-  hierarchy: getQuestionHierarchy(root.id)
-}));
-```
+### Search Issues
+1. Ensure data is properly vectorized
+2. Check certainty thresholds
+3. Verify filter syntax
