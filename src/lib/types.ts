@@ -63,7 +63,15 @@ export interface Project extends BaseEntity {
 }
 
 // Storage keys enum for type safety
-export type StorageKey = string;
+export enum StorageKeys {
+  QUESTIONS = 'questions',
+  ANSWERS = 'answers',
+  USERS = 'users',
+  CURRENT_USER = 'currentUser',
+  SETTINGS = 'settings',
+  PROJECTS = 'projects',
+  ACTIVE_PROJECT = 'activeProject',
+}
 
 // Form types for creating questions
 export interface CreateQuestionForm {

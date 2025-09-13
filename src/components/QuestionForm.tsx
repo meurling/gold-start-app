@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { QuestionCategory, Stakeholder, CreateQuestionForm } from "@/lib/types";
-import { useActiveProject, useCurrentUser } from "@/hooks/useStorage";
+import { useActiveProject } from "@/hooks/useStorage";
+import { useUser } from "@/hooks/useUser";
 import { useQuestionService } from "@/hooks/useQuestionService";
 
 const questionSchema = z.object({
@@ -27,7 +28,7 @@ interface QuestionFormProps {
 export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: QuestionFormProps) {
   const { getQuestions } = useQuestionService();
   const { activeProject } = useActiveProject();
-  const { currentUser } = useCurrentUser();
+  const { currentUser } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get all questions for parent/root selection
