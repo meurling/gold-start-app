@@ -1,5 +1,6 @@
-import weaviate, { WeaviateClient, ApiKey } from "weaviate-client";
+import weaviate, { ApiKey } from "weaviate-client";
 
+/*
 export interface DocumentChunk {
     id: string;
     content: string;
@@ -17,17 +18,18 @@ export interface SearchResult {
     score: number;
     highlights?: string[];
 }
+    */
 
 export class ProjectRag {
-    private collectionName: string;
     constructor(
-        private client: WeaviateClient,
-        projectId: string,
+        client,
+        projectId,
     ) {
+        this.client = client;
         this.collectionName = toCollectionName(projectId, ANSWER_DOC_COLLECTION_SUFFIX);
     }
 
-    async indexAnswer(chunkObjects: DocumentChunk[]): Promise<void> {
+    async indexAnswer(chunkObjects) {
         try {
             const collection = this.client.collections.get(this.collectionName);
 
@@ -51,7 +53,7 @@ export class ProjectRag {
         }
     }
 
-    async search(query: string, limit: number = 5): Promise<SearchResult[]> {
+    async search(query, limit = 5) {
         try {
             const collection = this.client.collections.get(this.collectionName);
 
@@ -62,12 +64,12 @@ export class ProjectRag {
 
             return result.objects.map(obj => ({
                 chunk: {
-                    id: obj.properties.chunkId as string,
-                    content: obj.properties.content as string,
-                    questionId: obj.properties.questionId as string,
-                    chunkIndex: obj.properties.chunkIndex as number,
-                    totalChunks: obj.properties.totalChunks as number,
-                    documentId: obj.properties.documentId as string,
+                    id: obj.properties.chunkId,
+                    content: obj.properties.content,
+                    questionId: obj.properties.questionId,
+                    chunkIndex: obj.properties.chunkIndex,
+                    totalChunks: obj.properties.totalChunks,
+                    documentId: obj.properties.documentId,
                     metadata: {
                         //createdAt: obj.properties.createdAt ? new Date(obj.properties.createdAt as string) : undefined,
                         //category: obj.properties.category as string,
@@ -84,11 +86,11 @@ export class ProjectRag {
     // TODO: Implement a delete of documents.
 }
 
-function toCollectionName(projectId: string, collection: string): string {
+function toCollectionName(projectId, collection) {
     return `${projectId}_${collection}`.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
-async function maybeCreateCollection(client: WeaviateClient, collectionName: string) {
+async function maybeCreateCollection(client, collectionName) {
     try {
         const doesExist = await client.collections.exists(collectionName);
         if (doesExist) {
@@ -124,11 +126,11 @@ async function maybeCreateCollection(client: WeaviateClient, collectionName: str
 
 const ANSWER_DOC_COLLECTION_SUFFIX = 'AnswerDoc';
 
-export async function connect(projectId: string): Promise<ProjectRag> {
+export async function connect(projectId) {
     try {
-        const openaiApiKey = process.env.VITE_OPENAI_API_KEY as string;
-        const weaviateApiKey = process.env.VITE_WEAVIATE_API_KEY as string;
-        const weaviateUrl = process.env.VITE_WEAVIATE_URL as string;
+        const openaiApiKey = process.env.VITE_OPENAI_API_KEY;
+        const weaviateApiKey = process.env.VITE_WEAVIATE_API_KEY;
+        const weaviateUrl = process.env.VITE_WEAVIATE_URL;
 
         let authCredentials = new ApiKey(weaviateApiKey);
         const client = await weaviate.connectToWeaviateCloud(weaviateUrl, {

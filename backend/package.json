@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "npx ts-node server.ts"
+    "start": "VITE_WEAVIATE_URL=yarqfmhuskukffrbfy3sw.c0.europe-west3.gcp.weaviate.cloud VITE_WEAVIATE_API_KEY=MHBzY0xGbTA0TUo0KzlIRV9ucmhYUDRMOEM3VnkxaHFYSTRNbTFFQlNiL2RCckZlODk2WVMxWnlWU2NJPV92MjAw VITE_OPENAI_API_KEY=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 node server.js"
   },
+
   "dependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
