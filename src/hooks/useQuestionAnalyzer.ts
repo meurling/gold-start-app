@@ -49,6 +49,7 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
           // Convert date strings back to Date objects for answers
           const answersWithDates = analysisResult.answers.map(answer => ({
             ...answer,
+            compliant: answer.compliant ?? false, // Ensure compliant field exists
             createdAt: new Date(answer.createdAt),
             updatedAt: new Date(answer.updatedAt)
           }));
@@ -80,10 +81,20 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       setIsInitialized(true);
       console.log('Question analyzer initialized with answers:', {
         totalAnswers: questionAnswers.length,
+        compliantAnswers: questionAnswers.filter(a => a.compliant).length,
+        nonCompliantAnswers: questionAnswers.filter(a => !a.compliant).length,
         answersByQuestion: questionAnswers.reduce((acc, answer) => {
-          acc[answer.questionId] = (acc[answer.questionId] || 0) + 1;
+          if (!acc[answer.questionId]) {
+            acc[answer.questionId] = { total: 0, compliant: 0, nonCompliant: 0 };
+          }
+          acc[answer.questionId].total += 1;
+          if (answer.compliant) {
+            acc[answer.questionId].compliant += 1;
+          } else {
+            acc[answer.questionId].nonCompliant += 1;
+          }
           return acc;
-        }, {} as Record<string, number>)
+        }, {} as Record<string, { total: number; compliant: number; nonCompliant: number }>)
       });
     }
   }, [answersLoading, questionAnswers]);
@@ -113,9 +124,11 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       await refreshQuestionAnswers();
       
       console.log('Question analysis completed and answers refreshed:', {
-        questionId: question.id,
+        questionId: result.questionId,
         isAnswered: result.isAnswered,
-        answerCount: result.answers.length
+        answerCount: result.answers.length,
+        compliantCount: result.answers.filter(a => a.compliant).length,
+        nonCompliantCount: result.answers.filter(a => !a.compliant).length
       });
       
       return result;
@@ -141,10 +154,15 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       // Refresh question answers to update UI immediately
       await refreshQuestionAnswers();
       
+      const totalCompliant = result.results.reduce((sum, r) => sum + r.answers.filter(a => a.compliant).length, 0);
+      const totalNonCompliant = result.results.reduce((sum, r) => sum + r.answers.filter(a => !a.compliant).length, 0);
+      
       console.log('Bulk question analysis completed and answers refreshed:', {
         totalAnalyzed: result.totalAnalyzed,
         answeredCount: result.answeredCount,
-        unansweredCount: result.unansweredCount
+        unansweredCount: result.unansweredCount,
+        totalCompliantAnswers: totalCompliant,
+        totalNonCompliantAnswers: totalNonCompliant
       });
       
       return result;
@@ -182,11 +200,14 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
     const hasAnswers = questionAnswers.some(answer => answer.questionId === questionId);
     
     // Debug logging
+    const answersForQuestion = questionAnswers.filter(a => a.questionId === questionId);
     console.log(`isQuestionAnswered(${questionId}):`, {
       isInitialized,
       hasAnswers,
       totalAnswers: questionAnswers.length,
-      answersForQuestion: questionAnswers.filter(a => a.questionId === questionId).length
+      answersForQuestion: answersForQuestion.length,
+      compliantAnswers: answersForQuestion.filter(a => a.compliant).length,
+      nonCompliantAnswers: answersForQuestion.filter(a => !a.compliant).length
     });
     
     return hasAnswers;

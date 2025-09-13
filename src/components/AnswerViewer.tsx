@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, FileText, Calendar, ExternalLink } from "lucide-react";
+import { Eye, FileText, Calendar, ExternalLink, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { QuestionAnswer, Document } from "@/lib/types";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useDocumentService } from "@/hooks/useDocumentService";
@@ -105,9 +105,23 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
               <h3 className="text-sm font-medium text-slate-600">
                 Found {answers.length} answer{answers.length !== 1 ? 's' : ''} in documents
               </h3>
-              <Badge variant="secondary" className="text-xs">
-                {answers.length} document{answers.length !== 1 ? 's' : ''}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {answers.length} document{answers.length !== 1 ? 's' : ''}
+                </Badge>
+                {answers.some(a => a.compliant) && (
+                  <Badge variant="default" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    {answers.filter(a => a.compliant).length} Compliant
+                  </Badge>
+                )}
+                {answers.some(a => !a.compliant) && (
+                  <Badge variant="destructive" className="text-xs bg-red-100 text-red-700 border-red-200">
+                    <XCircle className="h-3 w-3 mr-1" />
+                    {answers.filter(a => !a.compliant).length} Non-Compliant
+                  </Badge>
+                )}
+              </div>
             </div>
             
             <ScrollArea className="h-[400px] pr-4">
@@ -144,9 +158,31 @@ export function AnswerViewer({ questionId, questionContent, answers, trigger }: 
                                 </div>
                               </Button>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <Calendar className="h-3 w-3" />
-                              {formatDistanceToNow(new Date(answer.createdAt))} ago
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant={answer.compliant ? "default" : "destructive"}
+                                className={`text-xs ${
+                                  answer.compliant 
+                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200" 
+                                    : "bg-red-100 text-red-700 border-red-200"
+                                }`}
+                              >
+                                {answer.compliant ? (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Compliant
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Non-Compliant
+                                  </>
+                                )}
+                              </Badge>
+                              <div className="flex items-center gap-1 text-xs text-slate-500">
+                                <Calendar className="h-3 w-3" />
+                                {formatDistanceToNow(new Date(answer.createdAt))} ago
+                              </div>
                             </div>
                           </div>
                         </CardHeader>

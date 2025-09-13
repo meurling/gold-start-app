@@ -36,6 +36,7 @@ export interface QuestionAnswer extends BaseEntity {
   questionId: string;
   content: string;
   documentId: string; // The document that contains this answer
+  compliant: boolean; // true if the answer is compliant to the question, false if it answers but is not compliant
 }
 
 

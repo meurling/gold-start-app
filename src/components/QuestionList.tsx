@@ -1,5 +1,5 @@
 import React from "react";
-import { MessageSquare, Trash2, AlertTriangle, Brain, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { MessageSquare, Trash2, AlertTriangle, Brain, CheckCircle, XCircle, Loader2, Shield, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ function QuestionItem({ question, onDeleteQuestion, onAnalyzeQuestion, analyzing
   
   const isAnswered = isInitialized && isQuestionAnswered(question.id);
   const answers = getQuestionAnswers(question.id);
+  const compliantAnswers = answers.filter(a => a.compliant);
+  const nonCompliantAnswers = answers.filter(a => !a.compliant);
 
   const handleDelete = async () => {
     try {
@@ -57,10 +59,24 @@ function QuestionItem({ question, onDeleteQuestion, onAnalyzeQuestion, analyzing
             <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">{question.category}</span>
             <span className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">{question.stakeholder}</span>
             {isAnswered ? (
-              <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
-                Answered ({answers.length})
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Answered ({answers.length})
+                </span>
+                {compliantAnswers.length > 0 && (
+                  <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded flex items-center gap-1">
+                    <Shield className="h-3 w-3" />
+                    {compliantAnswers.length} Compliant
+                  </span>
+                )}
+                {nonCompliantAnswers.length > 0 && (
+                  <span className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded flex items-center gap-1">
+                    <ShieldAlert className="h-3 w-3" />
+                    {nonCompliantAnswers.length} Non-Compliant
+                  </span>
+                )}
+              </div>
             ) : (
               <span className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded flex items-center gap-1">
                 <XCircle className="h-3 w-3" />

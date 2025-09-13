@@ -107,7 +107,8 @@ export class QuestionAnalyzerService {
             await this.questionAnswerStorage.create({
               questionId: answer.questionId,
               content: answer.content,
-              documentId: answer.documentId
+              documentId: answer.documentId,
+              compliant: answer.compliant
             });
           }
 
@@ -118,7 +119,9 @@ export class QuestionAnalyzerService {
             projectId
           }, { 
             answerCount: answers.length,
-            answers: answers.map(a => ({ id: a.id, documentId: a.documentId }))
+            compliantCount: answers.filter(a => a.compliant).length,
+            nonCompliantCount: answers.filter(a => !a.compliant).length,
+            answers: answers.map(a => ({ id: a.id, documentId: a.documentId, compliant: a.compliant }))
           });
         } catch (error) {
           logError('QuestionAnalyzer', 'analyzeQuestion', error, {
@@ -140,10 +143,13 @@ export class QuestionAnalyzerService {
       logQuestionAnalysis('analyzeQuestion_completed', question.id, projectId, {
         questionContent: question.content,
         answerCount: answers.length,
+        compliantCount: answers.filter(a => a.compliant).length,
+        nonCompliantCount: answers.filter(a => !a.compliant).length,
         isAnswered: result.isAnswered,
         answers: answers.map(a => ({
           id: a.id,
           documentId: a.documentId,
+          compliant: a.compliant,
           contentPreview: a.content.substring(0, 100) + '...'
         }))
       });
@@ -245,11 +251,11 @@ export class QuestionAnalyzerService {
     });
 
     try {
-      const systemPrompt = `You are an expert at analyzing whether document chunks contain answers to specific questions.
+      const systemPrompt = `You are an expert at analyzing whether document chunks contain answers to specific questions and determining compliance.
 
-Your task is to analyze the provided question and document chunks to determine which chunks (if any) contain answers to the question.
+Your task is to analyze the provided question and document chunks to determine which chunks (if any) contain answers to the question, and whether those answers are compliant.
 
-For each chunk that contains an answer, you should extract the relevant content that answers the question.
+For each chunk that contains an answer, you should extract the relevant content and determine if it's compliant.
 
 IMPORTANT: Return ONLY valid JSON. Do not wrap your response in markdown code blocks or any other formatting.
 
@@ -257,17 +263,29 @@ Return your response as a JSON array of objects with the following structure:
 [
   {
     "content": "The specific content from the document that answers the question",
-    "documentId": "The document ID from the search result"
+    "documentId": "The document ID from the search result",
+    "compliant": true/false
   }
 ]
 
 If no chunks contain answers to the question, return an empty array [].
+
+Compliance Guidelines:
+- "compliant": true - The answer shows that the organization/entity is following the required standards, regulations, or best practices mentioned in the question
+- "compliant": false - The answer shows that the organization/entity is NOT following the required standards, regulations, or best practices, or there are gaps/issues identified
+
+Examples:
+- Question: "Do we have a data privacy policy?" → Answer: "Yes, we have a comprehensive GDPR-compliant data privacy policy" → compliant: true
+- Question: "Do we have a data privacy policy?" → Answer: "We are working on developing a data privacy policy" → compliant: false
+- Question: "Are our financial records audited annually?" → Answer: "Yes, our financial records are audited by an independent firm every year" → compliant: true
+- Question: "Are our financial records audited annually?" → Answer: "Our last audit was 2 years ago and we're overdue" → compliant: false
 
 Guidelines:
 - Only include chunks that directly answer the question or provide relevant information
 - Extract the most relevant portion of the chunk content
 - Be precise and concise in your extracted content
 - If a chunk only partially answers the question, still include it but extract only the relevant part
+- Determine compliance based on whether the answer indicates adherence to requirements
 - Return ONLY the JSON array, no additional text or formatting`;
 
       const userPrompt = `Question: "${question.content}"
@@ -358,8 +376,11 @@ Please analyze these chunks and return the JSON array of answers as specified.`;
         questionId: question.id
       }, {
         answerCount: answers.length,
+        compliantCount: answers.filter((a: any) => a.compliant).length,
+        nonCompliantCount: answers.filter((a: any) => !a.compliant).length,
         answers: answers.map((a: any) => ({
           documentId: a.documentId,
+          compliant: a.compliant,
           contentPreview: a.content?.substring(0, 100) + '...'
         }))
       });
@@ -370,6 +391,7 @@ Please analyze these chunks and return the JSON array of answers as specified.`;
         questionId: question.id,
         content: answer.content,
         documentId: answer.documentId,
+        compliant: answer.compliant ?? false, // Default to false if not specified
         createdAt: new Date(),
         updatedAt: new Date(),
       }));
