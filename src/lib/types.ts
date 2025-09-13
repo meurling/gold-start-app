@@ -26,14 +26,6 @@ export interface Answer extends BaseEntity {
   downvotes: number;
 }
 
-// User interface
-export interface User extends BaseEntity {
-  name: string;
-  email: string;
-  avatar?: string;
-  reputation: number;
-}
-
 // Project interface
 export interface Project extends BaseEntity {
   name: string;
@@ -42,15 +34,7 @@ export interface Project extends BaseEntity {
 }
 
 // Storage keys enum for type safety
-export enum StorageKeys {
-  QUESTIONS = 'questions',
-  ANSWERS = 'answers',
-  USERS = 'users',
-  CURRENT_USER = 'currentUser',
-  SETTINGS = 'settings',
-  PROJECTS = 'projects',
-  ACTIVE_PROJECT = 'activeProject',
-}
+export type StorageKey = string;
 
 // Generic storage interface
 export interface StorageData<T> {
