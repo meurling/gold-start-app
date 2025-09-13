@@ -89,7 +89,7 @@ export class ProjectRag {
     async indexAnswer(doc: Document, questionMetadata?: any): Promise<void> {
         try {
             // Chunk the document content
-            const chunks = this.chunkDocument(doc.content);
+            const chunks = this.chunkDocument(doc.rawText);
 
             // Create DocumentChunk objects
             const chunkObjects: DocumentChunk[] = chunks.map((content, index) => ({
