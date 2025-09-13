@@ -1,4 +1,14 @@
-# Welcome to your Lovable project
+# DAIRO - Q&A Platform
+
+DAIRO is a modern Q&A platform built with React, TypeScript, and local storage. It provides a clean interface for managing questions and answers with project-based organization.
+
+## Features
+
+- **Project Management**: Create and switch between multiple projects
+- **Q&A System**: Ask questions and provide answers
+- **Local Storage**: All data stored locally in your browser
+- **AI Integration**: OpenAI integration for enhanced Q&A capabilities
+- **Modern UI**: Built with shadcn/ui and Tailwind CSS
 
 ## Project info
 
@@ -32,9 +42,47 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables (optional, for AI features)
+cp .env.example .env
+# Edit .env and add your OpenAI API key
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+
+## Environment Setup
+
+### OpenAI Integration (Optional)
+
+To enable AI-powered features, you'll need to set up your OpenAI API key:
+
+1. **Copy the environment template:**
+   ```sh
+   cp .env.example .env
+   ```
+
+2. **Get your OpenAI API key:**
+   - Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Create a new API key
+   - Copy the key
+
+3. **Update your .env file:**
+   ```env
+   VITE_OPENAI_API_KEY=your_actual_api_key_here
+   ```
+
+4. **Restart the development server:**
+   ```sh
+   npm run dev
+   ```
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `VITE_OPENAI_API_KEY` | Your OpenAI API key for AI features | No | - |
+| `VITE_OPENAI_BASE_URL` | Custom OpenAI base URL (for Azure OpenAI, etc.) | No | `https://api.openai.com/v1` |
+| `VITE_OPENAI_DEFAULT_MODEL` | Default model to use | No | `gpt-3.5-turbo` |
 
 **Edit a file directly in GitHub**
 
@@ -54,11 +102,35 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Vite** - Fast build tool and development server
+- **TypeScript** - Type-safe JavaScript
+- **React** - UI library with hooks
+- **shadcn/ui** - Modern UI components
+- **Tailwind CSS** - Utility-first CSS framework
+- **Local Storage** - Client-side data persistence
+- **OpenAI API** - AI-powered features (optional)
+
+## Usage
+
+### Creating Projects
+
+1. Click on the project selector in the sidebar
+2. Select "Create New" from the dropdown
+3. Enter a project name and optional description
+4. Click "Create Project"
+
+### Managing Questions and Answers
+
+- Navigate to the "Questions" or "Answers" sections in the sidebar
+- Create, edit, and manage your Q&A content
+- All data is automatically saved to local storage
+
+### AI Features (with OpenAI API key)
+
+- Generate questions from content
+- Get AI-powered answers
+- Summarize content
+- Enhanced Q&A capabilities
 
 ## How can I deploy this project?
 
