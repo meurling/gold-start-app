@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Upload, File, Trash2, AlertTriangle, Brain, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Upload, File, Trash2, AlertTriangle, Brain, CheckCircle, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -52,7 +52,8 @@ export default function Questions() {
     analyzeQuestion,
     analyzeQuestions,
     isQuestionAnswered,
-    getQuestionAnswers
+    getQuestionAnswers,
+    refreshAnswers
   } = useQuestionAnalyzer();
   
   const {
@@ -311,6 +312,17 @@ export default function Questions() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {/* Refresh Answers Button */}
+                <Button 
+                  variant="outline" 
+                  onClick={refreshAnswers}
+                  disabled={analyzing}
+                  className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Answers
+                </Button>
+
                 {/* Analyze All Unanswered Button */}
                 {activeProject && unansweredQuestions.length > 0 && (
                   <Button 

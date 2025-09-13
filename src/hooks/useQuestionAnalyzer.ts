@@ -16,6 +16,7 @@ export interface UseQuestionAnalyzerReturn {
   analyzeQuestions: (questions: Question[], projectId: string) => Promise<BulkAnalysisResult>;
   hasAnswers: (question: Question, projectId: string) => Promise<boolean>;
   clearResults: () => void;
+  refreshAnswers: () => Promise<void>;
   
   // Utilities
   isQuestionAnswered: (questionId: string) => boolean;
@@ -28,7 +29,7 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
   const [isInitialized, setIsInitialized] = useState(false);
   
   const analyzerService = new QuestionAnalyzerService();
-  const { data: questionAnswers, loading: answersLoading } = useQuestionAnswers();
+  const { data: questionAnswers, loading: answersLoading, refresh: refreshQuestionAnswers } = useQuestionAnswers();
 
   // Storage key for persisting analysis results
   const STORAGE_KEY = 'question-analysis-results';
@@ -108,11 +109,20 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       // Update analysis results state
       setAnalysisResults(prev => new Map(prev).set(question.id, result));
       
+      // Refresh question answers to update UI immediately
+      await refreshQuestionAnswers();
+      
+      console.log('Question analysis completed and answers refreshed:', {
+        questionId: question.id,
+        isAnswered: result.isAnswered,
+        answerCount: result.answers.length
+      });
+      
       return result;
     } finally {
       setAnalyzing(false);
     }
-  }, [analyzerService]);
+  }, [analyzerService, refreshQuestionAnswers]);
 
   const analyzeQuestions = useCallback(async (questions: Question[], projectId: string): Promise<BulkAnalysisResult> => {
     setAnalyzing(true);
@@ -128,11 +138,20 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
       
       setAnalysisResults(newAnalysisResults);
       
+      // Refresh question answers to update UI immediately
+      await refreshQuestionAnswers();
+      
+      console.log('Bulk question analysis completed and answers refreshed:', {
+        totalAnalyzed: result.totalAnalyzed,
+        answeredCount: result.answeredCount,
+        unansweredCount: result.unansweredCount
+      });
+      
       return result;
     } finally {
       setAnalyzing(false);
     }
-  }, [analyzerService, analysisResults]);
+  }, [analyzerService, analysisResults, refreshQuestionAnswers]);
 
   const hasAnswers = useCallback(async (question: Question, projectId: string): Promise<boolean> => {
     try {
@@ -186,6 +205,7 @@ export function useQuestionAnalyzer(): UseQuestionAnalyzerReturn {
     analyzeQuestions,
     hasAnswers,
     clearResults,
+    refreshAnswers: refreshQuestionAnswers,
     isQuestionAnswered,
     getQuestionAnswers,
   };
