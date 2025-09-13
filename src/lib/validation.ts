@@ -98,41 +98,28 @@ export function validateQuestion(question: Partial<Question>): ValidationResult 
   const errors: ValidationError[] = [];
 
   // Required fields
-  const titleError = validators.required(question.title, 'title');
-  if (titleError) errors.push(titleError);
-
   const contentError = validators.required(question.content, 'content');
   if (contentError) errors.push(contentError);
 
-  const authorIdError = validators.required(question.authorId, 'authorId');
-  if (authorIdError) errors.push(authorIdError);
+  const userIdError = validators.required(question.userId, 'userId');
+  if (userIdError) errors.push(userIdError);
+
+  const projectIdError = validators.required(question.projectId, 'projectId');
+  if (projectIdError) errors.push(projectIdError);
+
+  const categoryError = validators.required(question.category, 'category');
+  if (categoryError) errors.push(categoryError);
+
+  const stakeholderError = validators.required(question.stakeholder, 'stakeholder');
+  if (stakeholderError) errors.push(stakeholderError);
 
   // Length validations
-  if (question.title) {
-    const titleLengthError = validators.minLength(question.title, 5, 'title');
-    if (titleLengthError) errors.push(titleLengthError);
-
-    const titleMaxError = validators.maxLength(question.title, 200, 'title');
-    if (titleMaxError) errors.push(titleMaxError);
-  }
-
   if (question.content) {
     const contentLengthError = validators.minLength(question.content, 10, 'content');
     if (contentLengthError) errors.push(contentLengthError);
 
     const contentMaxError = validators.maxLength(question.content, 5000, 'content');
     if (contentMaxError) errors.push(contentMaxError);
-  }
-
-  // Numeric validations
-  if (question.upvotes !== undefined) {
-    const upvotesError = validators.positiveNumber(question.upvotes, 'upvotes');
-    if (upvotesError) errors.push(upvotesError);
-  }
-
-  if (question.downvotes !== undefined) {
-    const downvotesError = validators.positiveNumber(question.downvotes, 'downvotes');
-    if (downvotesError) errors.push(downvotesError);
   }
 
   return {

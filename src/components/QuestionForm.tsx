@@ -54,6 +54,8 @@ export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: Que
 
       onSubmit({
         ...data,
+        parentQuestionId: data.parentQuestionId === "none" ? undefined : data.parentQuestionId,
+        rootQuestionId: data.rootQuestionId === "none" ? undefined : data.rootQuestionId,
         userId: currentUser.id,
         projectId: activeProject.id,
       });
@@ -175,7 +177,7 @@ export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: Que
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No parent question</SelectItem>
+                      <SelectItem value="none">No parent question</SelectItem>
                       {questions.map((question) => (
                         <SelectItem key={question.id} value={question.id}>
                           {question.content.length > 50 
@@ -203,7 +205,7 @@ export function QuestionForm({ onSubmit, parentQuestionId, rootQuestionId }: Que
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No root question</SelectItem>
+                      <SelectItem value="none">No root question</SelectItem>
                       {questions
                         .filter(q => !q.parentQuestionId) // Only show root questions
                         .map((question) => (
