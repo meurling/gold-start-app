@@ -1,10 +1,13 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/AppSidebar"
 import { DashboardHeader } from "@/components/DashboardHeader"
-import { DashboardStats } from "@/components/DashboardStats"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useNavigate } from "react-router-dom"
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -15,54 +18,38 @@ const Index = () => {
           
           <main className="flex-1 p-6 space-y-6">
             <div>
-              <h1 className="text-h1 font-bold text-foreground">Dashboard</h1>
+              <h1 className="text-h1 font-bold text-foreground">Welcome</h1>
               <p className="text-body text-muted-foreground mt-2">
-                Welcome back! Here's what's happening with your business today.
+                Choose what you'd like to work with today.
               </p>
             </div>
             
-            <DashboardStats />
-            
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="shadow-subtle">
+            <div className="grid gap-6 lg:grid-cols-2 max-w-4xl">
+              <Card className="shadow-subtle hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/questions')}>
                 <CardHeader>
-                  <CardTitle className="text-h3">Recent Activity</CardTitle>
+                  <CardTitle className="text-h3">Questions</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      "New user registration: sarah@example.com",
-                      "Payment processed: $299.00",
-                      "Support ticket resolved: #1234",
-                      "Feature update deployed",
-                    ].map((activity, i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded bg-muted/30">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        <span className="text-body-sm text-card-foreground">{activity}</span>
-                      </div>
-                    ))}
-                  </div>
+                <CardContent className="space-y-4">
+                  <p className="text-body text-muted-foreground">
+                    Upload questions
+                  </p>
+                  <Button className="w-full" onClick={(e) => { e.stopPropagation(); navigate('/questions'); }}>
+                    Go to Questions
+                  </Button>
                 </CardContent>
               </Card>
               
-              <Card className="shadow-subtle">
+              <Card className="shadow-subtle hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/answers')}>
                 <CardHeader>
-                  <CardTitle className="text-h3">Quick Actions</CardTitle>
+                  <CardTitle className="text-h3">Answers</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {[
-                    "Create new user account",
-                    "Generate monthly report", 
-                    "Send marketing campaign",
-                    "Update billing settings",
-                  ].map((action, i) => (
-                    <button
-                      key={i}
-                      className="w-full text-left p-3 rounded border border-border hover:bg-accent hover:border-primary transition-colors text-body-sm"
-                    >
-                      {action}
-                    </button>
-                  ))}
+                <CardContent className="space-y-4">
+                  <p className="text-body text-muted-foreground">
+                    Upload answers
+                  </p>
+                  <Button className="w-full" onClick={(e) => { e.stopPropagation(); navigate('/answers'); }}>
+                    Go to Answers
+                  </Button>
                 </CardContent>
               </Card>
             </div>
