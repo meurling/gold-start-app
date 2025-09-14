@@ -18,6 +18,8 @@ This project is built in collaboration with our key technology partners:
 DAIRO is an advanced document analysis and compliance platform that leverages AI to automatically analyze documents, extract questions, and determine compliance status. Built with modern web technologies, it provides organizations with intelligent insights into their document-based processes and regulatory compliance.
 
 ## 🎯 How to Use the App
+## You need to start both backend and frontend server.
+Before starting the backend you need to insert the API key for openAI in package.json (hackkyyyyy)
 
 ### Due Diligence Q&A Workflow
 
