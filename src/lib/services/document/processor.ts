@@ -2,6 +2,19 @@ import { openaiService } from '@/lib/openai';
 import { QuestionCategory, Stakeholder } from '@/lib/services/question/types';
 import { Document, ProcessingStatus } from '@/lib/types';
 
+// Debug utility to log question parsing details
+function debugQuestionParsing(question: any, index: number) {
+  console.log(`Debug Question ${index + 1}:`, {
+    rawQuestion: question,
+    content: question?.content,
+    contentType: typeof question?.content,
+    contentLength: question?.content?.length,
+    category: question?.category,
+    stakeholder: question?.stakeholder,
+    hasReasoning: !!question?.reasoning
+  });
+}
+
 // Interface for parsed questions from OpenAI
 export interface ParsedQuestion {
   content: string;
@@ -105,6 +118,12 @@ Return your response as a JSON object with this exact structure:
   "confidence": 0.85
 }
 
+CRITICAL: 
+- Return ONLY valid JSON, no markdown formatting or code blocks
+- Each question's "content" must be a string containing the actual question text
+- Use exact category and stakeholder names from the lists above
+- Ensure all JSON is properly formatted and parseable
+
 Focus on:
 - Legal and compliance questions
 - Operational questions
@@ -131,8 +150,26 @@ Extract 5-15 relevant questions that different stakeholders might ask about this
 
   private parseOpenAIResponse(response: string): DocumentProcessingResponse {
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // Clean the response first
+      let cleanedResponse = response.trim();
+      
+      // Remove markdown code blocks if present
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to extract JSON from the response with better pattern matching
+      let jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        // Try alternative patterns
+        jsonMatch = cleanedResponse.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonMatch) {
+          jsonMatch[0] = jsonMatch[1];
+        }
+      }
+      
       if (!jsonMatch) {
         throw new Error('No JSON found in response');
       }
@@ -146,18 +183,45 @@ Extract 5-15 relevant questions that different stakeholders might ask about this
 
       // Validate each question
       const validatedQuestions = parsed.questions.map((q: any, index: number) => {
+        // Debug logging for each question
+        debugQuestionParsing(q, index);
+        
+        // Enhanced validation with better error messages
         if (!q.content || typeof q.content !== 'string') {
-          throw new Error(`Question ${index + 1}: missing or invalid content`);
+          console.error(`Question ${index + 1} validation failed:`, {
+            content: q.content,
+            contentType: typeof q.content,
+            fullQuestion: q
+          });
+          throw new Error(`Question ${index + 1}: missing or invalid content (got: ${typeof q.content})`);
         }
+        
         if (!q.category || !Object.values(QuestionCategory).includes(q.category)) {
-          throw new Error(`Question ${index + 1}: invalid category`);
+          console.error(`Question ${index + 1} category validation failed:`, {
+            category: q.category,
+            validCategories: Object.values(QuestionCategory),
+            fullQuestion: q
+          });
+          throw new Error(`Question ${index + 1}: invalid category "${q.category}"`);
         }
+        
         if (!q.stakeholder || !Object.values(Stakeholder).includes(q.stakeholder)) {
-          throw new Error(`Question ${index + 1}: invalid stakeholder`);
+          console.error(`Question ${index + 1} stakeholder validation failed:`, {
+            stakeholder: q.stakeholder,
+            validStakeholders: Object.values(Stakeholder),
+            fullQuestion: q
+          });
+          throw new Error(`Question ${index + 1}: invalid stakeholder "${q.stakeholder}"`);
+        }
+
+        // Clean and validate content
+        const cleanContent = q.content.trim();
+        if (cleanContent.length < 10) {
+          throw new Error(`Question ${index + 1}: content too short (${cleanContent.length} characters)`);
         }
 
         return {
-          content: q.content.trim(),
+          content: cleanContent,
           category: q.category as QuestionCategory,
           stakeholder: q.stakeholder as Stakeholder,
           reasoning: q.reasoning || ''
@@ -173,6 +237,18 @@ Extract 5-15 relevant questions that different stakeholders might ask about this
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
       console.error('Raw response:', response);
+      console.error('Cleaned response:', response.trim());
+      
+      // Try to identify the specific parsing issue
+      if (error instanceof SyntaxError) {
+        console.error('JSON Syntax Error - likely malformed JSON from OpenAI');
+      } else if (error instanceof Error && error.message.includes('missing or invalid content')) {
+        console.error('Content validation error - OpenAI returned invalid question content');
+      } else if (error instanceof Error && error.message.includes('invalid category')) {
+        console.error('Category validation error - OpenAI returned invalid category');
+      } else if (error instanceof Error && error.message.includes('invalid stakeholder')) {
+        console.error('Stakeholder validation error - OpenAI returned invalid stakeholder');
+      }
       
       // Fallback: try to extract questions manually
       return this.fallbackQuestionExtraction(response);
